@@ -10,6 +10,45 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import FAQSection from "@/components/faq-section"
+
+// List of districts in Telangana
+const telanganaDistricts = [
+  "Adilabad",
+  "Bhadradri Kothagudem",
+  "Hyderabad",
+  "Jagtial",
+  "Jangaon",
+  "Jayashankar Bhupalpally",
+  "Jogulamba Gadwal",
+  "Kamareddy",
+  "Karimnagar",
+  "Khammam",
+  "Komaram Bheem Asifabad",
+  "Mahabubabad",
+  "Mahabubnagar",
+  "Mancherial",
+  "Medak",
+  "Medchal–Malkajgiri",
+  "Mulugu",
+  "Nagarkurnool",
+  "Nalgonda",
+  "Narayanpet",
+  "Nirmal",
+  "Nizamabad",
+  "Peddapalli",
+  "Rajanna Sircilla",
+  "Rangareddy",
+  "Sangareddy",
+  "Siddipet",
+  "Suryapet",
+  "Vikarabad",
+  "Wanaparthy",
+  "Warangal",
+  "Yadadri Bhuvanagiri",
+]
 
 export default function SignupPage() {
   const router = useRouter()
@@ -21,11 +60,22 @@ export default function SignupPage() {
     collegeName: "",
     rollNumber: "",
     phoneNumber: "",
+    intermediateHallTicket: "",
+    eamcetHallTicket: "",
+    gender: "",
+    age: "",
+    district: "",
+    collegeAddress: "",
+    homeAddress: "",
   })
   const [loading, setLoading] = useState(false)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -42,6 +92,34 @@ export default function SignupPage() {
       return
     }
 
+    // Basic validation for required fields
+    const requiredFields = [
+      "name",
+      "email",
+      "password",
+      "collegeName",
+      "rollNumber",
+      "phoneNumber",
+      "intermediateHallTicket",
+      "eamcetHallTicket",
+      "gender",
+      "age",
+      "district",
+      "collegeAddress",
+      "homeAddress",
+    ]
+
+    const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData])
+
+    if (missingFields.length > 0) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -50,14 +128,7 @@ export default function SignupPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          collegeName: formData.collegeName,
-          rollNumber: formData.rollNumber,
-          phoneNumber: formData.phoneNumber,
-        }),
+        body: JSON.stringify(formData),
       })
 
       const data = await response.json()
@@ -104,107 +175,266 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">Create an account</CardTitle>
-          <CardDescription>Enter your information to create an account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="John Doe"
-                required
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="john@example.com"
-                required
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="collegeName">College Name</Label>
-              <Input
-                id="collegeName"
-                name="collegeName"
-                placeholder="Engineering College Name"
-                required
-                value={formData.collegeName}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rollNumber">Roll Number</Label>
-              <Input
-                id="rollNumber"
-                name="rollNumber"
-                placeholder="Your College Roll Number"
-                required
-                value={formData.rollNumber}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input
-                id="phoneNumber"
-                name="phoneNumber"
-                type="tel"
-                placeholder="Your Phone Number"
-                required
-                value={formData.phoneNumber}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Sign Up"}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary underline underline-offset-4">
-              Log in
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        <Card className="w-full max-w-3xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-2xl">Create an account</CardTitle>
+            <CardDescription>Enter your information to create an account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Personal Information</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">
+                      Full Name<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder="John Doe"
+                      required
+                      value={formData.name}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">
+                      Email<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="john@example.com"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">
+                      Gender<span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="age">
+                      Age<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="age"
+                      name="age"
+                      type="number"
+                      placeholder="18"
+                      required
+                      min="15"
+                      max="30"
+                      value={formData.age}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">
+                      Phone Number<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="phoneNumber"
+                      name="phoneNumber"
+                      type="tel"
+                      placeholder="Your Phone Number"
+                      required
+                      value={formData.phoneNumber}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="district">
+                      District<span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={formData.district} onValueChange={(value) => handleSelectChange("district", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select district" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {telanganaDistricts.map((district) => (
+                          <SelectItem key={district} value={district.toLowerCase()}>
+                            {district}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="homeAddress">
+                    Home Address<span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="homeAddress"
+                    name="homeAddress"
+                    placeholder="Your home address"
+                    required
+                    value={formData.homeAddress}
+                    onChange={handleChange}
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Educational Information</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="intermediateHallTicket">
+                      Intermediate Hall Ticket Number<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="intermediateHallTicket"
+                      name="intermediateHallTicket"
+                      placeholder="Intermediate Hall Ticket Number"
+                      required
+                      value={formData.intermediateHallTicket}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="eamcetHallTicket">
+                      EAMCET Hall Ticket Number<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="eamcetHallTicket"
+                      name="eamcetHallTicket"
+                      placeholder="EAMCET Hall Ticket Number"
+                      required
+                      value={formData.eamcetHallTicket}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="collegeName">
+                      College Name<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="collegeName"
+                      name="collegeName"
+                      placeholder="Engineering College Name"
+                      required
+                      value={formData.collegeName}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rollNumber">
+                      Roll Number<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="rollNumber"
+                      name="rollNumber"
+                      placeholder="Your College Roll Number"
+                      required
+                      value={formData.rollNumber}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="collegeAddress">
+                    College Address<span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="collegeAddress"
+                    name="collegeAddress"
+                    placeholder="Your college address"
+                    required
+                    value={formData.collegeAddress}
+                    onChange={handleChange}
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Account Security</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">
+                      Password<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">
+                      Confirm Password<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      required
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Creating account..." : "Sign Up"}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Already have an account?{" "}
+              <Link href="/login" className="text-primary underline underline-offset-4">
+                Log in
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
+
+      {/* FAQ Section */}
+      <FAQSection />
+
+      <footer className="bg-gray-100 py-4 border-t mt-8">
+        <div className="container mx-auto px-4 text-center text-sm text-gray-600">
+          &copy; {new Date().getFullYear()} Engineering Study Scholarship Test. All rights reserved.
+        </div>
+      </footer>
     </div>
   )
 }
