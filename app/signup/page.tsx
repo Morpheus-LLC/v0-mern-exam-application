@@ -427,6 +427,77 @@ export default function SignupPage() {
         </Card>
       </div>
 
+      {/* Scholarship Benefits Table */}
+      <section className="py-8 border-b bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-xl font-medium mb-6">
+            Here's a breakdown of the exciting scholarship opportunities based on your rank:
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border p-4 text-left">Rank Range</th>
+                  <th className="border p-4 text-left">Scholarship Benefits</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border p-4 font-medium">1 - 100</td>
+                  <td className="border p-4">
+                    <p className="font-medium">100% Sponsorship on complete Engineering Education, including:</p>
+                    <p className="mt-2">* Full Tuition Fee Coverage</p>
+                    <p>* Complete Hostel Fee Coverage</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border p-4 font-medium">101 - 1000</td>
+                  <td className="border p-4">
+                    <p className="font-medium">
+                      50% Sponsorship on complete Engineering Education (Tuition & other academic fees)
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border p-4 font-medium">1001 - 10000</td>
+                  <td className="border p-4">
+                    <p className="font-medium">
+                      30% Sponsorship on complete Engineering Education (Tuition & other academic fees)
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* LDE Section */}
+      <section className="py-8 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold text-center mb-6">LEARNING-DOING-EARNING (LDE)</h2>
+          <div className="space-y-6">
+            <div>
+              <p className="text-lg">
+                <span className="font-medium">1.</span> Introducing Learning-Doing-Earning system to integrate the
+                real-time core fields the student will learn more through Assignments/practicals and live demonstrations
+                in the classroom, while doing will earn compensation for the student's skill towards self-sustainability
+                will uplift their enthusiasm to concentrate more on careers in core subjects.
+              </p>
+            </div>
+            <div>
+              <p className="text-lg">
+                <span className="font-medium">2.</span> All the students who undergo LDE method, will get threeyears of
+                Real-Time Experience Certificate in their relevant core. The successful candidates are to be assisted in
+                Entrepreneurship projects with all facilities related to own firm startups -(Project guidelines- Funds
+                procurement & Marketing etc.) During the LDE program the students will be taken on monthly corporate
+                visits/tours for entrepreneurship live visualizations.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <FAQSection />
 
