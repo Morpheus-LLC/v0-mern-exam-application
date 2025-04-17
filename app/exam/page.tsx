@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "@/components/ui/use-toast"
+import SimpleWebcam from "@/components/simple-webcam" // Add this new import
 
 type Question = {
   id: string
@@ -285,46 +286,80 @@ export default function ExamPage() {
         <Progress value={overallProgress} className="h-2" />
       </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>
-            <span className="capitalize">{currentQuestion.subject}</span> - Question{" "}
-            {examState.currentQuestionIndex + 1} of {questions.length}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg mb-4">{currentQuestion.text}</p>
-          <RadioGroup
-            value={examState.answers[currentQuestion.id] || ""}
-            onValueChange={handleAnswerSelect}
-            className="space-y-3"
-          >
-            {currentQuestion.options.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2 border p-3 rounded-md">
-                <RadioGroupItem value={option} id={`option-${index}`} />
-                <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
-                  {option}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handlePrevQuestion} disabled={examState.currentQuestionIndex === 0}>
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleNextQuestion}
-            disabled={examState.currentQuestionIndex === questions.length - 1}
-          >
-            Next
-          </Button>
-        </CardFooter>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main exam content - takes up 3/4 of the space on larger screens */}
+        <div className="lg:col-span-3">
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>
+                <span className="capitalize">{currentQuestion.subject}</span> - Question{" "}
+                {examState.currentQuestionIndex + 1} of {questions.length}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-lg mb-4">{currentQuestion.text}</p>
+              <RadioGroup
+                value={examState.answers[currentQuestion.id] || ""}
+                onValueChange={handleAnswerSelect}
+                className="space-y-3"
+              >
+                {currentQuestion.options.map((option, index) => (
+                  <div key={index} className="flex items-center space-x-2 border p-3 rounded-md">
+                    <RadioGroupItem value={option} id={`option-${index}`} />
+                    <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handlePrevQuestion} disabled={examState.currentQuestionIndex === 0}>
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleNextQuestion}
+                disabled={examState.currentQuestionIndex === questions.length - 1}
+              >
+                Next
+              </Button>
+            </CardFooter>
+          </Card>
 
-      <div className="flex justify-center">
-        <Button onClick={handleSubmitExam}>Submit Exam</Button>
+          <div className="flex justify-center">
+            <Button onClick={handleSubmitExam}>Submit Exam</Button>
+          </div>
+        </div>
+
+        {/* Webcam proctor section - takes up 1/4 of the space on larger screens */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Exam Proctoring</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Use the simpler implementation that's more likely to work across browsers */}
+                <SimpleWebcam />
+
+                {/* Comment out the original implementation but leave it as a fallback */}
+                {/* <WebcamProctor /> */}
+
+                <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                  <h4 className="text-sm font-medium text-yellow-800 mb-1">Proctoring Rules</h4>
+                  <ul className="text-xs text-yellow-700 space-y-1 list-disc pl-4">
+                    <li>Keep your face visible in the camera</li>
+                    <li>No other people should be visible</li>
+                    <li>No talking or reading questions aloud</li>
+                    <li>No additional devices or materials</li>
+                    <li>Do not leave the exam screen</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
