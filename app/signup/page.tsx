@@ -60,6 +60,7 @@ export default function SignupPage() {
     collegeName: "",
     rollNumber: "",
     phoneNumber: "",
+    alternatePhoneNumber: "",
     intermediateHallTicket: "",
     eamcetHallTicket: "",
     gender: "",
@@ -67,6 +68,8 @@ export default function SignupPage() {
     district: "",
     collegeAddress: "",
     homeAddress: "",
+    rationCard: "none",
+    rationCardNumber: "", // Added ration card number field
   })
   const [loading, setLoading] = useState(false)
 
@@ -77,6 +80,11 @@ export default function SignupPage() {
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
+
+    // Reset ration card number when changing ration card type to "none"
+    if (name === "rationCard" && value === "none") {
+      setFormData((prev) => ({ ...prev, rationCardNumber: "" }))
+    }
   }
 
   // Update the handleSubmit function to include better error handling and navigation
@@ -108,6 +116,11 @@ export default function SignupPage() {
       "collegeAddress",
       "homeAddress",
     ]
+
+    // Add ration card number as required field if white or pink card is selected
+    if (formData.rationCard === "white" || formData.rationCard === "pink") {
+      requiredFields.push("rationCardNumber")
+    }
 
     const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData])
 
@@ -173,6 +186,9 @@ export default function SignupPage() {
       setLoading(false)
     }
   }
+
+  // Check if ration card number is required
+  const isRationCardNumberRequired = formData.rationCard === "white" || formData.rationCard === "pink"
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -266,6 +282,18 @@ export default function SignupPage() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="alternatePhoneNumber">Alternate Phone Number</Label>
+                    <Input
+                      id="alternatePhoneNumber"
+                      name="alternatePhoneNumber"
+                      type="tel"
+                      placeholder="Alternate Phone Number (Optional)"
+                      value={formData.alternatePhoneNumber}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="district">
                       District<span className="text-red-500">*</span>
                     </Label>
@@ -282,6 +310,40 @@ export default function SignupPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rationCard">Ration Card</Label>
+                    <Select
+                      value={formData.rationCard}
+                      onValueChange={(value) => handleSelectChange("rationCard", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select ration card type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="white">White Card</SelectItem>
+                        <SelectItem value="pink">Pink Card</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Conditionally show ration card number field */}
+                  {isRationCardNumberRequired && (
+                    <div className="space-y-2">
+                      <Label htmlFor="rationCardNumber">
+                        Ration Card Number<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="rationCardNumber"
+                        name="rationCardNumber"
+                        placeholder="Enter your ration card number"
+                        required
+                        value={formData.rationCardNumber}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -447,7 +509,7 @@ export default function SignupPage() {
                   <td className="border p-4">
                     <p className="font-medium">100% Sponsorship on complete Engineering Education, including:</p>
                     <p className="mt-2">* Full Tuition Fee Coverage</p>
-                    <p>* Complete Hostel Fee Coverage</p>
+                    <p className="mt-2">* Complete Hostel Fee Coverage</p>
                   </td>
                 </tr>
                 <tr>

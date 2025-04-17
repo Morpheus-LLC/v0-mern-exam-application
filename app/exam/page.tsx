@@ -8,20 +8,20 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "@/components/ui/use-toast"
-import SimpleWebcam from "@/components/simple-webcam" // Add this new import
+import SimpleWebcam from "@/components/simple-webcam"
 
 type Question = {
   id: string
   text: string
   options: string[]
-  subject: "math" | "science" | "chemistry" | "english"
+  subject: "math" | "science" | "chemistry" // Removed "english"
 }
 
 type ExamState = {
   currentQuestionIndex: number
   answers: Record<string, string>
   timeRemaining: number
-  currentSubject: "math" | "science" | "chemistry" | "english"
+  currentSubject: "math" | "science" | "chemistry" // Removed "english"
   subjectProgress: Record<string, number>
 }
 
@@ -38,7 +38,7 @@ export default function ExamPage() {
       math: 0,
       science: 0,
       chemistry: 0,
-      english: 0,
+      // Removed english from subjectProgress
     },
   })
 
@@ -125,15 +125,7 @@ export default function ExamPage() {
             options: ["1", "2", "3", "4"],
             subject: "chemistry" as const,
           })),
-        // English questions
-        ...Array(20)
-          .fill(null)
-          .map((_, i) => ({
-            id: `english-${i}`,
-            text: `English Question ${i + 1}: What is the past tense of ${["run", "swim", "write", "speak"][i % 4]}?`,
-            options: ["ran", "swam", "wrote", "spoke"],
-            subject: "english" as const,
-          })),
+        // Removed English questions
       ]
 
       // Shuffle the questions
@@ -257,7 +249,7 @@ export default function ExamPage() {
         <div className="text-lg font-semibold">Time Remaining: {formatTime(examState.timeRemaining)}</div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="space-y-1">
           <p className="text-sm font-medium">Math</p>
           <Progress value={examState.subjectProgress.math} className="h-2" />
@@ -270,10 +262,7 @@ export default function ExamPage() {
           <p className="text-sm font-medium">Chemistry</p>
           <Progress value={examState.subjectProgress.chemistry} className="h-2" />
         </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium">English</p>
-          <Progress value={examState.subjectProgress.english} className="h-2" />
-        </div>
+        {/* Removed English progress bar */}
       </div>
 
       <div className="space-y-1 mb-6">
@@ -342,9 +331,6 @@ export default function ExamPage() {
               <CardContent>
                 {/* Use the simpler implementation that's more likely to work across browsers */}
                 <SimpleWebcam />
-
-                {/* Comment out the original implementation but leave it as a fallback */}
-                {/* <WebcamProctor /> */}
 
                 <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-3">
                   <h4 className="text-sm font-medium text-yellow-800 mb-1">Proctoring Rules</h4>

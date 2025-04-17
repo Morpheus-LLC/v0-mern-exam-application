@@ -192,11 +192,7 @@ export default function Home() {
                       className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="text-right">
-                    <a href="#" className="text-sm text-gray-500 hover:underline">
-                      Forgot Password?
-                    </a>
-                  </div>
+                  {/* Removed the Forgot Password link as requested */}
                   <div className="flex gap-4">
                     <Link
                       href="/signup"
