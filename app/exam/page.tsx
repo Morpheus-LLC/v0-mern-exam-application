@@ -33,7 +33,7 @@ export default function ExamPage() {
   const [examState, setExamState] = useState<ExamState>({
     currentQuestionIndex: 0,
     answers: {},
-    timeRemaining: 90 * 60, // 90 minutes in seconds
+    timeRemaining: 60 * 60, // 60 minutes in seconds (changed from 90)
     currentSubject: "math",
     subjectProgress: {
       math: 0,
@@ -49,11 +49,36 @@ export default function ExamPage() {
 
   // Tab visibility detection
   useEffect(() => {
+    let warningInterval: NodeJS.Timeout | null = null
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden" && audioRef.current) {
+        // Play sound immediately when tab is left
         audioRef.current.play().catch((error) => {
           console.error("Error playing audio:", error)
         })
+
+        // Set up interval to play sound repeatedly until user returns
+        warningInterval = setInterval(() => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = 0 // Reset audio to beginning
+            audioRef.current.play().catch((error) => {
+              console.error("Error playing audio:", error)
+            })
+          }
+        }, 3000) // Play every 3 seconds
+      } else if (document.visibilityState === "visible") {
+        // Clear interval when user returns to tab
+        if (warningInterval) {
+          clearInterval(warningInterval)
+          warningInterval = null
+        }
+
+        // Stop audio if it's playing
+        if (audioRef.current && !audioRef.current.paused) {
+          audioRef.current.pause()
+          audioRef.current.currentTime = 0
+        }
       }
     }
 
@@ -61,6 +86,9 @@ export default function ExamPage() {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange)
+      if (warningInterval) {
+        clearInterval(warningInterval)
+      }
     }
   }, [])
 
@@ -116,7 +144,7 @@ export default function ExamPage() {
     return () => clearInterval(timer)
   }, [router])
 
-  // For demo purposes, let's create EAMCET-based sample questions
+  // For demo purposes, let's create EAMCET-based sample questions - limited to 60 total (20 per subject)
   useEffect(() => {
     if (questions.length === 0 && !loading) {
       const eamcetQuestions: Question[] = [
@@ -610,6 +638,7 @@ export default function ExamPage() {
   const currentQuestion = questions[examState.currentQuestionIndex]
   const totalAnswered = Object.keys(examState.answers).length
   const overallProgress = Math.floor((totalAnswered / questions.length) * 100)
+  const totalQuestions = questions.length // Should be 60
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -637,7 +666,7 @@ export default function ExamPage() {
         <div className="flex justify-between">
           <p className="text-sm font-medium">Overall Progress</p>
           <p className="text-sm font-medium">
-            {totalAnswered}/{questions.length} Questions
+            {totalAnswered}/{totalQuestions} Questions
           </p>
         </div>
         <Progress value={overallProgress} className="h-2" />
@@ -650,7 +679,7 @@ export default function ExamPage() {
             <CardHeader>
               <CardTitle>
                 <span className="capitalize">{currentQuestion.subject}</span> - Question{" "}
-                {examState.currentQuestionIndex + 1} of {questions.length}
+                {examState.currentQuestionIndex + 1} of {totalQuestions}
               </CardTitle>
             </CardHeader>
             <CardContent>
