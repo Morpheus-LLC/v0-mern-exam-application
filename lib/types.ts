@@ -6,7 +6,7 @@ export type User = {
 }
 
 // Question types
-export type Subject = "math" | "science" | "chemistry" | "english"
+export type Subject = "math" | "physics" | "chemistry"
 
 export type Question = {
   id: string

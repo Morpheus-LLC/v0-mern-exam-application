@@ -85,8 +85,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              The exam consists of 80 questions (20 from each subject) and is randomized for each attempt. You'll have
-              90 minutes to complete the exam.
+              The exam consists of 60 questions (20 from each subject: Mathematics, Physics, and Chemistry) and is
+              randomized for each attempt. You'll have 60 minutes to complete the exam.
             </p>
           </CardContent>
           <CardFooter>

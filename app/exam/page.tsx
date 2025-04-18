@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,11 +30,8 @@ export default function ExamPage() {
   const router = useRouter()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [audioInitialized, setAudioInitialized] = useState(false)
   const [tabSwitched, setTabSwitched] = useState(false)
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
-  const warningIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const [examState, setExamState] = useState<ExamState>({
     currentQuestionIndex: 0,
@@ -48,53 +45,6 @@ export default function ExamPage() {
     },
   })
 
-  // Initialize audio element
-  useEffect(() => {
-    // Create audio element
-    audioRef.current = new Audio("/audio/warning.mp3")
-
-    // Set volume to maximum
-    if (audioRef.current) {
-      audioRef.current.volume = 1.0
-    }
-
-    // Clean up on unmount
-    return () => {
-      if (warningIntervalRef.current) {
-        clearInterval(warningIntervalRef.current)
-      }
-    }
-  }, [])
-
-  // Function to initialize audio (must be triggered by user interaction)
-  const initializeAudio = () => {
-    if (audioRef.current && !audioInitialized) {
-      // Load the audio file
-      audioRef.current.load()
-
-      // Play and immediately pause to initialize audio context in browsers
-      audioRef.current
-        .play()
-        .then(() => {
-          audioRef.current?.pause()
-          audioRef.current!.currentTime = 0
-          setAudioInitialized(true)
-          toast({
-            title: "Audio initialized",
-            description: "Warning sounds will now play if you leave the exam tab.",
-          })
-        })
-        .catch((error) => {
-          console.error("Error initializing audio:", error)
-          toast({
-            title: "Audio initialization failed",
-            description: "Please ensure your browser allows audio playback.",
-            variant: "destructive",
-          })
-        })
-    }
-  }
-
   // Tab visibility detection
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -102,44 +52,9 @@ export default function ExamPage() {
         // User left the tab
         setTabSwitched(true)
         setTabSwitchCount((prev) => prev + 1)
-        console.log("Tab switched - trying to play audio")
-
-        // Try to play audio
-        if (audioRef.current && audioInitialized) {
-          audioRef.current.currentTime = 0
-          const playPromise = audioRef.current.play()
-
-          if (playPromise !== undefined) {
-            playPromise.catch((error) => {
-              console.error("Error playing audio:", error)
-            })
-          }
-
-          // Set up interval to play sound repeatedly until user returns
-          warningIntervalRef.current = setInterval(() => {
-            if (audioRef.current) {
-              audioRef.current.currentTime = 0
-              audioRef.current.play().catch((error) => {
-                console.error("Error playing audio in interval:", error)
-              })
-            }
-          }, 2000) // Play every 2 seconds
-        }
       } else if (document.visibilityState === "visible" && tabSwitched) {
         // User returned to the tab
         setTabSwitched(false)
-
-        // Clear interval when user returns to tab
-        if (warningIntervalRef.current) {
-          clearInterval(warningIntervalRef.current)
-          warningIntervalRef.current = null
-        }
-
-        // Stop audio if it's playing
-        if (audioRef.current && !audioRef.current.paused) {
-          audioRef.current.pause()
-          audioRef.current.currentTime = 0
-        }
 
         // Show a toast notification when they return
         toast({
@@ -154,11 +69,8 @@ export default function ExamPage() {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange)
-      if (warningIntervalRef.current) {
-        clearInterval(warningIntervalRef.current)
-      }
     }
-  }, [tabSwitched, audioInitialized])
+  }, [tabSwitched])
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -593,8 +505,19 @@ export default function ExamPage() {
         },
       ]
 
-      // Shuffle the questions
-      const shuffled = [...eamcetQuestions].sort(() => Math.random() - 0.5)
+      // Filter out any English questions (just to be safe)
+      const filteredQuestions = eamcetQuestions.filter((q) => q.subject !== "english")
+
+      // Make sure we have exactly 60 questions (20 per subject)
+      const mathQuestions = filteredQuestions.filter((q) => q.subject === "math").slice(0, 20)
+      const physicsQuestions = filteredQuestions.filter((q) => q.subject === "physics").slice(0, 20)
+      const chemistryQuestions = filteredQuestions.filter((q) => q.subject === "chemistry").slice(0, 20)
+
+      // Combine and shuffle
+      const finalQuestions = [...mathQuestions, ...physicsQuestions, ...chemistryQuestions]
+      const shuffled = [...finalQuestions].sort(() => Math.random() - 0.5)
+
+      // Set the questions
       setQuestions(shuffled)
     }
   }, [loading, questions])
@@ -715,21 +638,6 @@ export default function ExamPage() {
         <div className="text-lg font-semibold">Time Remaining: {formatTime(examState.timeRemaining)}</div>
       </div>
 
-      {!audioInitialized && (
-        <div className="mb-6 bg-yellow-50 border border-yellow-300 rounded-md p-4 flex items-center">
-          <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-          <div className="flex-1">
-            <p className="text-yellow-800 font-medium">Audio initialization required</p>
-            <p className="text-yellow-700 text-sm">
-              Click the button below to enable warning sounds when leaving the exam tab.
-            </p>
-          </div>
-          <Button onClick={initializeAudio} variant="outline" className="ml-4">
-            Enable Audio
-          </Button>
-        </div>
-      )}
-
       {tabSwitchCount > 0 && (
         <div className="mb-6 bg-red-50 border border-red-300 rounded-md p-4">
           <div className="flex items-center">
@@ -840,22 +748,6 @@ export default function ExamPage() {
             </Card>
           </div>
         </div>
-      </div>
-
-      {/* Test audio button at the bottom for debugging */}
-      <div className="mt-8 text-center">
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (audioRef.current) {
-              audioRef.current.currentTime = 0
-              audioRef.current.play().catch((e) => console.error("Test play error:", e))
-            }
-          }}
-          className="text-sm"
-        >
-          Test Warning Sound
-        </Button>
       </div>
     </div>
   )

@@ -15,14 +15,13 @@ export async function GET(request: Request) {
 
     // Generate a sample result
     const result = {
-      totalQuestions: 80,
-      correctAnswers: 62,
-      score: 77.5,
+      totalQuestions: 60,
+      correctAnswers: 46,
+      score: 76.7,
       subjectScores: {
         math: 85,
-        science: 75,
+        physics: 75,
         chemistry: 70,
-        english: 80,
       },
       date: new Date().toISOString(),
     }
