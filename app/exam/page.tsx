@@ -12,17 +12,17 @@ import SimpleWebcam from "@/components/simple-webcam"
 import { AlertCircle } from "lucide-react"
 
 type Question = {
-  id: string
+  _id: string
   text: string
   options: string[]
-  subject: "math" | "physics" | "chemistry" // Updated subjects to match EAMCET
+  subject: "math" | "physics" | "chemistry"
 }
 
 type ExamState = {
   currentQuestionIndex: number
   answers: Record<string, string>
   timeRemaining: number
-  currentSubject: "math" | "physics" | "chemistry" // Updated subjects
+  currentSubject: "math" | "physics" | "chemistry"
   subjectProgress: Record<string, number>
 }
 
@@ -33,7 +33,7 @@ export default function ExamPage() {
   const [tabSwitched, setTabSwitched] = useState(false)
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
   const [audioStatus, setAudioStatus] = useState<"initializing" | "ready" | "error" | "playing">("initializing")
-  const [debugInfo, setDebugInfo] = useState<string[]>([])
+  const [alreadyTakenExam, setAlreadyTakenExam] = useState(false)
 
   // TTS references
   const speechSynthRef = useRef<SpeechSynthesis | null>(null)
@@ -52,18 +52,11 @@ export default function ExamPage() {
     },
   })
 
-  // Add debug log function
-  const addDebugLog = (message: string) => {
-    console.log(message)
-    setDebugInfo((prev) => [message, ...prev.slice(0, 9)]) // Keep last 10 messages
-  }
-
   // Initialize Text-to-Speech
   useEffect(() => {
     // Check if browser supports speech synthesis
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       speechSynthRef.current = window.speechSynthesis
-      addDebugLog("Speech synthesis is supported")
       setAudioStatus("ready")
 
       // Initialize with a silent utterance to unlock audio on some browsers
@@ -71,12 +64,11 @@ export default function ExamPage() {
         const silentUtterance = new SpeechSynthesisUtterance(" ")
         silentUtterance.volume = 0
         speechSynthRef.current.speak(silentUtterance)
-        addDebugLog("Silent utterance initialized")
       } catch (error) {
-        addDebugLog(`Error initializing silent utterance: ${error instanceof Error ? error.message : String(error)}`)
+        console.error("Error initializing silent utterance:", error)
       }
     } else {
-      addDebugLog("Speech synthesis is not supported in this browser")
+      console.error("Speech synthesis is not supported in this browser")
       setAudioStatus("error")
     }
 
@@ -94,10 +86,7 @@ export default function ExamPage() {
 
   // Function to play warning using TTS
   const playWarningSound = () => {
-    addDebugLog("Attempting to play warning using TTS")
-
     if (!speechSynthRef.current) {
-      addDebugLog("Speech synthesis not available")
       setAudioStatus("error")
       return false
     }
@@ -130,29 +119,24 @@ export default function ExamPage() {
 
         if (femaleVoice) {
           utterance.voice = femaleVoice
-          addDebugLog(`Using voice: ${femaleVoice.name}`)
         } else {
           // Just use the first available voice
           utterance.voice = voices[0]
-          addDebugLog(`Using default voice: ${voices[0].name}`)
         }
       }
 
       // Add event handlers
       utterance.onstart = () => {
-        addDebugLog("TTS warning started")
         setAudioStatus("playing")
         isSpeakingRef.current = true
       }
 
       utterance.onend = () => {
-        addDebugLog("TTS warning ended")
         setAudioStatus("ready")
         isSpeakingRef.current = false
       }
 
-      utterance.onerror = (event) => {
-        addDebugLog(`TTS error: ${event.error}`)
+      utterance.onerror = () => {
         setAudioStatus("error")
         isSpeakingRef.current = false
       }
@@ -161,7 +145,7 @@ export default function ExamPage() {
       speechSynthRef.current.speak(utterance)
       return true
     } catch (error) {
-      addDebugLog(`Error playing TTS warning: ${error instanceof Error ? error.message : String(error)}`)
+      console.error("Error playing TTS warning:", error)
       setAudioStatus("error")
       return false
     }
@@ -174,7 +158,6 @@ export default function ExamPage() {
         // User left the tab
         setTabSwitched(true)
         setTabSwitchCount((prev) => prev + 1)
-        addDebugLog("Tab switched - trying to play warning")
 
         // Try to play warning
         playWarningSound()
@@ -189,7 +172,6 @@ export default function ExamPage() {
       } else if (document.visibilityState === "visible" && tabSwitched) {
         // User returned to the tab
         setTabSwitched(false)
-        addDebugLog("User returned to tab")
 
         // Clear interval when user returns to tab
         if (warningIntervalRef.current) {
@@ -224,6 +206,38 @@ export default function ExamPage() {
     }
   }, [tabSwitched])
 
+  // Check if user has already taken the exam
+  useEffect(() => {
+    const checkExamStatus = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        router.push("/login")
+        return
+      }
+
+      try {
+        const response = await fetch("/api/exam/status", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to check exam status")
+        }
+
+        const data = await response.json()
+        if (data.hasTakenExam) {
+          setAlreadyTakenExam(true)
+        }
+      } catch (error) {
+        console.error("Error checking exam status:", error)
+      }
+    }
+
+    checkExamStatus()
+  }, [router])
+
   useEffect(() => {
     const token = localStorage.getItem("token")
 
@@ -246,7 +260,26 @@ export default function ExamPage() {
         }
 
         const data = await response.json()
-        setQuestions(data.questions)
+
+        // Ensure we have exactly 60 questions (20 per subject)
+        const mathQuestions = data.questions.filter((q) => q.subject === "math").slice(0, 20)
+        const physicsQuestions = data.questions.filter((q) => q.subject === "physics").slice(0, 20)
+        const chemistryQuestions = data.questions.filter((q) => q.subject === "chemistry").slice(0, 20)
+
+        const balancedQuestions = [...mathQuestions, ...physicsQuestions, ...chemistryQuestions]
+
+        // If we don't have enough questions, redirect to dashboard with an error
+        if (balancedQuestions.length < 60) {
+          toast({
+            title: "Error",
+            description: "Not enough questions available for the exam. Please contact an administrator.",
+            variant: "destructive",
+          })
+          router.push("/dashboard")
+          return
+        }
+
+        setQuestions(balancedQuestions)
       } catch (error) {
         toast({
           title: "Error",
@@ -276,393 +309,6 @@ export default function ExamPage() {
     return () => clearInterval(timer)
   }, [router])
 
-  // For demo purposes, let's create EAMCET-based sample questions - limited to 60 total (20 per subject)
-  useEffect(() => {
-    if (questions.length === 0 && !loading) {
-      const eamcetQuestions: Question[] = [
-        // Mathematics questions (20)
-        {
-          id: "math-1",
-          text: "If the sum of the roots of the quadratic equation ax² + bx + c = 0 is equal to the product of the roots, then:",
-          options: ["a + c = b", "a = c", "b = 2√(ac)", "a - c = b"],
-          subject: "math",
-        },
-        {
-          id: "math-2",
-          text: "The value of lim(x→0) (sin x)/x is:",
-          options: ["0", "1", "∞", "Does not exist"],
-          subject: "math",
-        },
-        {
-          id: "math-3",
-          text: "If f(x) = x³ - 3x² + 4x - 2, then f'(2) equals:",
-          options: ["4", "6", "8", "10"],
-          subject: "math",
-        },
-        {
-          id: "math-4",
-          text: "The area bounded by the curve y = x² and the lines y = 1, y = 4, and x = 0 is:",
-          options: ["5/3", "7/3", "8/3", "9/3"],
-          subject: "math",
-        },
-        {
-          id: "math-5",
-          text: "If the vectors a = 2i + 3j and b = i - j are perpendicular to vector c = xi + yj, then:",
-          options: ["2x - 3y = 0", "2x + 3y = 0", "3x - 2y = 0", "3x + 2y = 0"],
-          subject: "math",
-        },
-        {
-          id: "math-6",
-          text: "The solution of the differential equation dy/dx = e^(x+y) is:",
-          options: ["e^y = e^x + C", "e^y = -e^x + C", "e^y = e^(-x) + C", "e^y = -e^(-x) + C"],
-          subject: "math",
-        },
-        {
-          id: "math-7",
-          text: "The value of ∫(0 to π/2) sin²x dx is:",
-          options: ["π/4", "π/2", "π/3", "π"],
-          subject: "math",
-        },
-        {
-          id: "math-8",
-          text: "If A and B are two events such that P(A) = 0.3, P(B) = 0.4 and P(A∩B) = 0.2, then P(A|B) is:",
-          options: ["0.5", "0.3", "0.4", "0.7"],
-          subject: "math",
-        },
-        {
-          id: "math-9",
-          text: "The equation of the tangent to the curve y = x² + 2x at the point (1, 3) is:",
-          options: ["y = 4x - 1", "y = 4x - 4", "y = 4x", "y = 4x + 3"],
-          subject: "math",
-        },
-        {
-          id: "math-10",
-          text: "The distance between the lines 3x - 4y + 7 = 0 and 6x - 8y - 5 = 0 is:",
-          options: ["1", "2", "3", "4"],
-          subject: "math",
-        },
-        {
-          id: "math-11",
-          text: "If z = x + iy is a complex number such that |z| = 1 and arg(z) = π/3, then z equals:",
-          options: ["1/2 + i√3/2", "√3/2 + i/2", "-1/2 + i√3/2", "-√3/2 + i/2"],
-          subject: "math",
-        },
-        {
-          id: "math-12",
-          text: "The rank of the matrix [[1, 2, 3], [2, 4, 6], [3, 6, 9]] is:",
-          options: ["1", "2", "3", "0"],
-          subject: "math",
-        },
-        {
-          id: "math-13",
-          text: "The general solution of the differential equation d²y/dx² + 4y = 0 is:",
-          options: ["y = A cos 2x + B sin 2x", "y = Ae^(2x) + Be^(-2x)", "y = A cos 2x", "y = B sin 2x"],
-          subject: "math",
-        },
-        {
-          id: "math-14",
-          text: "If f(x) = x³ - 6x² + 12x - 8, then the value of x for which f(x) = 0 is:",
-          options: ["1", "2", "3", "4"],
-          subject: "math",
-        },
-        {
-          id: "math-15",
-          text: "The value of ∫(1 to 2) (x² + 1)/(x³ + 3x) dx is:",
-          options: ["ln(7/4)", "ln(4/7)", "ln(7)", "ln(4)"],
-          subject: "math",
-        },
-        {
-          id: "math-16",
-          text: "If the lines 2x + 3y = 5 and 3x + ky = 8 are perpendicular, then the value of k is:",
-          options: ["-2", "2", "-3/2", "3/2"],
-          subject: "math",
-        },
-        {
-          id: "math-17",
-          text: "The probability that a leap year has 53 Sundays is:",
-          options: ["1/7", "2/7", "3/7", "4/7"],
-          subject: "math",
-        },
-        {
-          id: "math-18",
-          text: "The locus of the point of intersection of perpendicular tangents to the parabola y² = 4ax is:",
-          options: ["x = -a", "x = a", "y = a", "y = -a"],
-          subject: "math",
-        },
-        {
-          id: "math-19",
-          text: "If A is a square matrix such that A² = A, then (I - A)² equals:",
-          options: ["I - A", "I + A", "I - 2A", "I"],
-          subject: "math",
-        },
-        {
-          id: "math-20",
-          text: "The value of the determinant |2 3 1; 4 1 3; 2 5 2| is:",
-          options: ["-13", "13", "0", "1"],
-          subject: "math",
-        },
-
-        // Physics questions (20)
-        {
-          id: "physics-1",
-          text: "A body is thrown vertically upward with a velocity of 19.6 m/s. The maximum height reached by the body is (g = 9.8 m/s²):",
-          options: ["19.6 m", "9.8 m", "39.2 m", "20 m"],
-          subject: "physics",
-        },
-        {
-          id: "physics-2",
-          text: "The dimensional formula for the coefficient of viscosity is:",
-          options: ["[ML⁻¹T⁻¹]", "[MLT⁻¹]", "[ML⁻¹T⁻²]", "[ML²T⁻²]"],
-          subject: "physics",
-        },
-        {
-          id: "physics-3",
-          text: "The work done in moving a charge of 2 coulombs from a point at 10V to another point at 30V is:",
-          options: ["40 J", "20 J", "60 J", "-40 J"],
-          subject: "physics",
-        },
-        {
-          id: "physics-4",
-          text: "A body of mass 2 kg is rotating in a circle of radius 2 m with an angular velocity of 3 rad/s. The centripetal force acting on it is:",
-          options: ["36 N", "12 N", "24 N", "18 N"],
-          subject: "physics",
-        },
-        {
-          id: "physics-5",
-          text: "The energy equivalent of 1 gram of matter is:",
-          options: ["9 × 10¹³ J", "9 × 10¹⁶ J", "9 × 10¹⁰ J", "9 × 10¹⁹ J"],
-          subject: "physics",
-        },
-        {
-          id: "physics-6",
-          text: "The focal length of a convex lens is 20 cm. The power of the lens is:",
-          options: ["5 D", "0.05 D", "0.5 D", "50 D"],
-          subject: "physics",
-        },
-        {
-          id: "physics-7",
-          text: "The wavelength of the first line of Balmer series in hydrogen spectrum is 656.3 nm. The wavelength of the second line of the series is approximately:",
-          options: ["486.1 nm", "410.2 nm", "434.1 nm", "364.6 nm"],
-          subject: "physics",
-        },
-        {
-          id: "physics-8",
-          text: "The resistance of a wire is R. If its length and radius are both doubled, the new resistance will be:",
-          options: ["R/2", "R", "2R", "4R"],
-          subject: "physics",
-        },
-        {
-          id: "physics-9",
-          text: "A particle is moving with a velocity v = 3i + 4j + 5k. The magnitude of the velocity is:",
-          options: ["√50", "12", "5", "√34"],
-          subject: "physics",
-        },
-        {
-          id: "physics-10",
-          text: "The moment of inertia of a uniform circular disc about an axis passing through its center and perpendicular to its plane is:",
-          options: ["MR²/2", "MR²", "2MR²", "MR²/4"],
-          subject: "physics",
-        },
-        {
-          id: "physics-11",
-          text: "The electric field inside a charged conducting sphere is:",
-          options: ["Zero", "Directly proportional to radius", "Inversely proportional to radius", "Constant"],
-          subject: "physics",
-        },
-        {
-          id: "physics-12",
-          text: "The magnetic field at the center of a circular coil of radius R carrying current I is:",
-          options: ["μ₀I/2R", "μ₀I/R", "μ₀I/2πR", "μ₀I/4πR"],
-          subject: "physics",
-        },
-        {
-          id: "physics-13",
-          text: "In a Young's double-slit experiment, the fringe width is β. If the entire apparatus is immersed in water (refractive index 4/3), the new fringe width will be:",
-          options: ["3β/4", "4β/3", "β", "β/2"],
-          subject: "physics",
-        },
-        {
-          id: "physics-14",
-          text: "The half-life of a radioactive element is 30 days. The fraction of the initial amount that remains after 90 days is:",
-          options: ["1/8", "1/4", "1/2", "3/8"],
-          subject: "physics",
-        },
-        {
-          id: "physics-15",
-          text: "The energy of a photon of wavelength 6000 Å is approximately:",
-          options: ["2.07 eV", "3.1 eV", "1.5 eV", "0.5 eV"],
-          subject: "physics",
-        },
-        {
-          id: "physics-16",
-          text: "The de Broglie wavelength of an electron accelerated through a potential difference of 100 V is approximately:",
-          options: ["1.23 Å", "0.123 nm", "12.3 pm", "0.0123 nm"],
-          subject: "physics",
-        },
-        {
-          id: "physics-17",
-          text: "A body is projected with a velocity of 20 m/s at an angle of 30° with the horizontal. The maximum height reached by the body is (g = 10 m/s²):",
-          options: ["5 m", "10 m", "15 m", "20 m"],
-          subject: "physics",
-        },
-        {
-          id: "physics-18",
-          text: "The efficiency of a Carnot engine working between 127°C and 27°C is:",
-          options: ["25%", "50%", "75%", "100%"],
-          subject: "physics",
-        },
-        {
-          id: "physics-19",
-          text: "The ratio of the specific heat capacities (γ = Cp/Cv) for a monoatomic gas is:",
-          options: ["5/3", "7/5", "4/3", "3/2"],
-          subject: "physics",
-        },
-        {
-          id: "physics-20",
-          text: "The electric potential at a distance r from a point charge q is V. The electric field at the same point is:",
-          options: ["-dV/dr", "dV/dr", "-V/r", "V/r"],
-          subject: "physics",
-        },
-
-        // Chemistry questions (20)
-        {
-          id: "chemistry-1",
-          text: "The IUPAC name of the compound CH₃-CH=CH-CHO is:",
-          options: ["But-2-enal", "But-3-enal", "But-2-en-1-al", "But-3-en-1-al"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-2",
-          text: "The hybridization of carbon in diamond is:",
-          options: ["sp³", "sp²", "sp", "dsp²"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-3",
-          text: "The pH of a 0.001 M HCl solution is:",
-          options: ["3", "2", "1", "4"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-4",
-          text: "Which of the following is not a colligative property?",
-          options: ["Viscosity", "Osmotic pressure", "Depression in freezing point", "Elevation in boiling point"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-5",
-          text: "The oxidation state of chromium in K₂Cr₂O₇ is:",
-          options: ["+6", "+3", "+2", "+4"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-6",
-          text: "The electronic configuration of Cu²⁺ is:",
-          options: ["[Ar] 3d⁹", "[Ar] 3d¹⁰", "[Ar] 3d⁸ 4s¹", "[Ar] 3d⁷ 4s²"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-7",
-          text: "Which of the following is not an aromatic compound?",
-          options: ["Cyclohexane", "Benzene", "Naphthalene", "Pyridine"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-8",
-          text: "The number of isomers possible for C₄H₉Cl is:",
-          options: ["4", "5", "6", "7"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-9",
-          text: "The reaction of phenol with bromine water gives:",
-          options: ["2,4,6-tribromophenol", "o-bromophenol", "p-bromophenol", "m-bromophenol"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-10",
-          text: "The most electronegative element among the following is:",
-          options: ["F", "Cl", "O", "N"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-11",
-          text: "Which of the following is a strong electrolyte?",
-          options: ["NaCl", "CH₃COOH", "NH₄OH", "C₆H₁₂O₆"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-12",
-          text: "The compound that does not undergo nucleophilic substitution reaction is:",
-          options: ["Chlorobenzene", "Ethyl chloride", "Isopropyl chloride", "Methyl chloride"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-13",
-          text: "The geometry of PCl₅ molecule is:",
-          options: ["Trigonal bipyramidal", "Tetrahedral", "Octahedral", "Square pyramidal"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-14",
-          text: "The number of d-electrons in Fe²⁺ (Atomic number of Fe = 26) is:",
-          options: ["6", "4", "3", "8"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-15",
-          text: "Which of the following is not a Lewis acid?",
-          options: ["NH₃", "BF₃", "AlCl₃", "FeCl₃"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-16",
-          text: "The correct order of increasing acidic strength is:",
-          options: [
-            "Phenol < Ethanol < Chloroacetic acid < Acetic acid",
-            "Ethanol < Phenol < Acetic acid < Chloroacetic acid",
-            "Ethanol < Acetic acid < Phenol < Chloroacetic acid",
-            "Acetic acid < Chloroacetic acid < Phenol < Ethanol",
-          ],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-17",
-          text: "The compound that gives a positive Fehling's test is:",
-          options: ["Acetaldehyde", "Acetone", "Benzaldehyde", "Benzoic acid"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-18",
-          text: "The IUPAC name of the compound CH₃-CH(OH)-COOH is:",
-          options: [
-            "2-hydroxypropanoic acid",
-            "2-hydroxyethanoic acid",
-            "3-hydroxypropanoic acid",
-            "3-hydroxybutanoic acid",
-          ],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-19",
-          text: "The major product formed when propene reacts with HBr in the presence of peroxide is:",
-          options: ["1-bromopropane", "2-bromopropane", "1,2-dibromopropane", "propyl bromide"],
-          subject: "chemistry",
-        },
-        {
-          id: "chemistry-20",
-          text: "The bond angle in NH₃ is approximately:",
-          options: ["107°", "109.5°", "120°", "180°"],
-          subject: "chemistry",
-        },
-      ]
-
-      // Shuffle the questions and ensure we have exactly 60 questions
-      const shuffled = [...eamcetQuestions].sort(() => Math.random() - 0.5).slice(0, 60)
-      setQuestions(shuffled)
-    }
-  }, [loading, questions])
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -673,11 +319,11 @@ export default function ExamPage() {
     const currentQuestion = questions[examState.currentQuestionIndex]
 
     setExamState((prev) => {
-      const newAnswers = { ...prev.answers, [currentQuestion.id]: answer }
+      const newAnswers = { ...prev.answers, [currentQuestion._id]: answer }
 
       // Update subject progress
       const subjectQuestions = questions.filter((q) => q.subject === currentQuestion.subject)
-      const answeredInSubject = subjectQuestions.filter((q) => newAnswers[q.id]).length
+      const answeredInSubject = subjectQuestions.filter((q) => newAnswers[q._id]).length
       const subjectProgress = {
         ...prev.subjectProgress,
         [currentQuestion.subject]: Math.floor((answeredInSubject / 20) * 100),
@@ -759,6 +405,25 @@ export default function ExamPage() {
     }
   }
 
+  if (alreadyTakenExam) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-2xl">Exam Already Completed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">You have already taken this exam. Each user is allowed to take the exam only once.</p>
+            <p className="mb-4">If you believe this is an error, please contact an administrator.</p>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => router.push("/dashboard")}>Return to Dashboard</Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+
   if (loading || questions.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -828,7 +493,7 @@ export default function ExamPage() {
             <CardContent>
               <p className="text-lg mb-4">{currentQuestion.text}</p>
               <RadioGroup
-                value={examState.answers[currentQuestion.id] || ""}
+                value={examState.answers[currentQuestion._id] || ""}
                 onValueChange={handleAnswerSelect}
                 className="space-y-3"
               >

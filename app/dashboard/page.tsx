@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
+import { AlertCircle, Loader2 } from "lucide-react"
 
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<{ name: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [checkingQuestions, setCheckingQuestions] = useState(true)
+  const [hasEnoughQuestions, setHasEnoughQuestions] = useState(true)
+  const [loadingTestData, setLoadingTestData] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -43,7 +47,72 @@ export default function DashboardPage() {
     }
 
     fetchUser()
+
+    // Check if we have enough questions
+    const checkQuestions = async () => {
+      try {
+        const response = await fetch("/api/admin/check-questions", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to check questions")
+        }
+
+        const data = await response.json()
+        setHasEnoughQuestions(data.hasEnoughQuestions)
+
+        // If we don't have enough questions, load test data automatically
+        if (!data.hasEnoughQuestions) {
+          await loadTestData()
+        }
+      } catch (error) {
+        console.error("Error checking questions:", error)
+      } finally {
+        setCheckingQuestions(false)
+      }
+    }
+
+    checkQuestions()
   }, [router])
+
+  const loadTestData = async () => {
+    setLoadingTestData(true)
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) return
+
+      const response = await fetch("/api/admin/load-test-data", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to load test data")
+      }
+
+      const data = await response.json()
+      setHasEnoughQuestions(true)
+
+      toast({
+        title: "Test data loaded successfully",
+        description: `Loaded questions for the exam.`,
+      })
+    } catch (error) {
+      console.error("Error loading test data:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load test data. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingTestData(false)
+    }
+  }
 
   const handleStartExam = () => {
     router.push("/exam")
@@ -61,7 +130,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
       </div>
     )
   }
@@ -75,12 +144,54 @@ export default function DashboardPage() {
         </Button>
       </div>
 
+      {checkingQuestions ? (
+        <Card className="mb-6">
+          <CardContent className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-500 mr-2" />
+            <p>Checking exam availability...</p>
+          </CardContent>
+        </Card>
+      ) : !hasEnoughQuestions && loadingTestData ? (
+        <Card className="mb-6">
+          <CardContent className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-500 mr-2" />
+            <p>Loading exam questions...</p>
+          </CardContent>
+        </Card>
+      ) : !hasEnoughQuestions ? (
+        <Card className="mb-6 border-amber-200 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-amber-800">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              Exam Not Available
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-amber-700">
+              The exam is not available at the moment because there are not enough questions in the database.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={loadTestData} disabled={loadingTestData}>
+              {loadingTestData ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Loading Questions...
+                </>
+              ) : (
+                "Load Exam Questions"
+              )}
+            </Button>
+          </CardFooter>
+        </Card>
+      ) : null}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Start New Exam</CardTitle>
             <CardDescription>
-              Take a comprehensive exam with questions from Math, Science, Chemistry, and English
+              Take a comprehensive exam with questions from Math, Physics, and Chemistry
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -90,7 +201,9 @@ export default function DashboardPage() {
             </p>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleStartExam}>Start Exam</Button>
+            <Button onClick={handleStartExam} disabled={checkingQuestions || !hasEnoughQuestions}>
+              Start Exam
+            </Button>
           </CardFooter>
         </Card>
 
@@ -105,7 +218,7 @@ export default function DashboardPage() {
             </p>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" disabled>
+            <Button variant="outline" onClick={() => router.push("/results")}>
               View Results
             </Button>
           </CardFooter>

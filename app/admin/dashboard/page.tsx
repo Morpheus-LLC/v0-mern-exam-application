@@ -8,12 +8,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 import AdminQuestions from "@/components/admin-questions"
 import AdminResults from "@/components/admin-results"
-import { AlertCircle } from "lucide-react"
+import AdminUsers from "@/components/admin-users"
+import { AlertCircle, Loader2 } from "lucide-react"
 
 export default function AdminDashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<{ name: string; role: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingTestData, setLoadingTestData] = useState(false)
+  const [questionCounts, setQuestionCounts] = useState<{
+    math: number
+    physics: number
+    chemistry: number
+    total: number
+  } | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -61,7 +69,30 @@ export default function AdminDashboardPage() {
     }
 
     fetchUser()
+    checkQuestions()
   }, [router])
+
+  const checkQuestions = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) return
+
+      const response = await fetch("/api/admin/check-questions", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to check questions")
+      }
+
+      const data = await response.json()
+      setQuestionCounts(data.counts)
+    } catch (error) {
+      console.error("Error checking questions:", error)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -73,6 +104,7 @@ export default function AdminDashboardPage() {
   }
 
   const handleLoadTestData = async () => {
+    setLoadingTestData(true)
     try {
       const token = localStorage.getItem("token")
       if (!token) return
@@ -94,19 +126,24 @@ export default function AdminDashboardPage() {
         title: "Test data loaded successfully",
         description: `Loaded ${data.counts.users} users, ${data.counts.questions} questions, and ${data.counts.results} results.`,
       })
+
+      // Refresh question counts
+      checkQuestions()
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to load test data",
         variant: "destructive",
       })
+    } finally {
+      setLoadingTestData(false)
     }
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
       </div>
     )
   }
@@ -127,23 +164,53 @@ export default function AdminDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium">Load Test Data</h3>
-              <p className="text-sm text-gray-500">
-                Populate the database with sample users, questions, and exam results
-              </p>
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Load Test Data</h3>
+                <p className="text-sm text-gray-500">
+                  Populate the database with sample users, questions, and exam results
+                </p>
+              </div>
+              <Button onClick={handleLoadTestData} variant="outline" disabled={loadingTestData}>
+                {loadingTestData ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  "Load Test Data"
+                )}
+              </Button>
             </div>
-            <Button onClick={handleLoadTestData} variant="outline">
-              Load Test Data
-            </Button>
+
+            {questionCounts && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium mb-2">Question Database Status</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    Mathematics: <span className="font-medium">{questionCounts.math}</span>
+                  </div>
+                  <div>
+                    Physics: <span className="font-medium">{questionCounts.physics}</span>
+                  </div>
+                  <div>
+                    Chemistry: <span className="font-medium">{questionCounts.chemistry}</span>
+                  </div>
+                  <div>
+                    Total: <span className="font-medium">{questionCounts.total}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="questions" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="questions">Manage Questions</TabsTrigger>
+          <TabsTrigger value="users">Manage Users</TabsTrigger>
           <TabsTrigger value="results">View Results</TabsTrigger>
         </TabsList>
         <TabsContent value="questions">
@@ -154,6 +221,17 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <AdminQuestions />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="users">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>View and manage user accounts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AdminUsers />
             </CardContent>
           </Card>
         </TabsContent>
