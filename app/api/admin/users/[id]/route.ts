@@ -13,7 +13,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if admin (in a real app, you'd verify the JWT)
+    // Check if admin
     const tokenParts = authorization.split(" ")[1].split("-")
     const role = tokenParts[4]
 
@@ -25,25 +25,25 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     await connectToDatabase()
 
-    const user = await User.findById(userId)
+    // Find user by ID
+    const user = await User.findById(userId, { password: 0 })
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 })
     }
 
-    // Check if user has taken the exam
-    const examResult = await ExamResult.findOne({ userId })
-    const hasTakenExam = !!examResult
-    const canRetakeExam = examResult?.canRetake || false
+    // Get exam attempts
+    const examResults = await ExamResult.find({ userId: user._id })
 
-    // Convert Mongoose document to plain object and add exam status
-    const userObject = user.toObject()
-    userObject.hasTakenExam = hasTakenExam
-    userObject.canRetakeExam = canRetakeExam
+    // Add exam attempts to user object
+    const userWithExamInfo = {
+      ...user.toObject(),
+      examAttempts: examResults.length,
+    }
 
-    return NextResponse.json({ user: userObject }, { status: 200 })
+    return NextResponse.json({ user: userWithExamInfo }, { status: 200 })
   } catch (error) {
-    console.error("Error fetching user details:", error)
+    console.error("Error fetching user:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })
   }
 }

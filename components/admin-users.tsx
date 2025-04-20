@@ -1,29 +1,53 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "@/components/ui/use-toast"
-import UserDetailsModal from "./user-details-modal"
-import { Loader2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Search } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import AdminUserDetailsModal from "@/components/admin-user-details-modal"
 
 type User = {
   _id: string
   name: string
   email: string
-  role: string
-  createdAt: string
+  collegeName?: string
+  phoneNumber?: string
+  examCount: number
+  examAllowed?: boolean
 }
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
 
   useEffect(() => {
     fetchUsers()
   }, [])
+
+  // Filter users when search term changes
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredUsers(users)
+      return
+    }
+
+    const lowerSearchTerm = searchTerm.toLowerCase()
+    const filtered = users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(lowerSearchTerm) ||
+        user.email.toLowerCase().includes(lowerSearchTerm) ||
+        (user.collegeName && user.collegeName.toLowerCase().includes(lowerSearchTerm)) ||
+        (user.phoneNumber && user.phoneNumber.toLowerCase().includes(lowerSearchTerm)),
+    )
+    setFilteredUsers(filtered)
+  }, [searchTerm, users])
 
   const fetchUsers = async () => {
     try {
@@ -42,6 +66,7 @@ export default function AdminUsers() {
 
       const data = await response.json()
       setUsers(data.users)
+      setFilteredUsers(data.users)
     } catch (error) {
       toast({
         title: "Error",
@@ -53,22 +78,30 @@ export default function AdminUsers() {
     }
   }
 
-  const handleViewUser = (userId: string) => {
+  const handleViewDetails = (userId: string) => {
     setSelectedUserId(userId)
-    setIsModalOpen(true)
+    setDetailsModalOpen(true)
   }
 
   const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setSelectedUserId(null)
+    setDetailsModalOpen(false)
+    fetchUsers() // Refresh user list when modal is closed
   }
 
   return (
-    <div>
+    <div className="space-y-4">
+      <div className="flex items-center border rounded-md px-3 py-2">
+        <Search className="h-5 w-5 text-gray-400 mr-2" />
+        <Input
+          placeholder="Search users by name, email, college..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+        />
+      </div>
+
       {loading ? (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-        </div>
+        <p className="text-center py-4">Loading users...</p>
       ) : (
         <div className="border rounded-md">
           <Table>
@@ -76,27 +109,32 @@ export default function AdminUsers() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Created At</TableHead>
+                <TableHead>College</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user) => (
+                filteredUsers.map((user) => (
                   <TableRow key={user._id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell className="capitalize">{user.role}</TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{user.collegeName || "-"}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Badge variant="outline">{user.examCount > 0 ? `Exam taken` : "No exam"}</Badge>
+                        {user.examAllowed === false && <Badge variant="secondary">Restricted</Badge>}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="outline" size="sm" onClick={() => handleViewUser(user._id)}>
+                      <Button size="sm" variant="outline" onClick={() => handleViewDetails(user._id)}>
                         View Details
                       </Button>
                     </TableCell>
@@ -108,7 +146,7 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {selectedUserId && <UserDetailsModal userId={selectedUserId} isOpen={isModalOpen} onClose={handleCloseModal} />}
+      <AdminUserDetailsModal userId={selectedUserId} isOpen={detailsModalOpen} onClose={handleCloseModal} />
     </div>
   )
 }

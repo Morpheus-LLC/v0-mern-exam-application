@@ -41,6 +41,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 })
     }
 
+    // Check if user is allowed to take the exam
+    if (user.examAllowed === false) {
+      return NextResponse.json({ message: "You are not allowed to take this exam" }, { status: 403 })
+    }
+
+    // Check if user has already taken the exam
+    const existingResults = await ExamResult.find({ userId: user._id })
+    if (existingResults.length > 0 && user.examAttempts >= 1) {
+      return NextResponse.json({ message: "You have already taken this exam" }, { status: 403 })
+    }
+
     // Get all questions to check answers
     const allQuestions = await Question.find({ _id: { $in: Object.keys(answers) } })
 
@@ -99,6 +110,9 @@ export async function POST(request: Request) {
     })
 
     await result.save()
+
+    // Update user exam attempts
+    await User.findByIdAndUpdate(user._id, { $inc: { examAttempts: 1 } })
 
     return NextResponse.json(
       {

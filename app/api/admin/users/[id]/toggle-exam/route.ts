@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import connectToDatabase from "@/lib/mongodb"
-import ExamResult from "@/models/ExamResult"
+import User from "@/models/User"
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const headersList = headers()
     const authorization = headersList.get("authorization")
@@ -12,7 +12,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if admin (in a real app, you'd verify the JWT)
+    // Check if admin
     const tokenParts = authorization.split(" ")[1].split("-")
     const role = tokenParts[4]
 
@@ -21,24 +21,26 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     const userId = params.id
-    const { canRetake } = await request.json()
+    const { examAllowed } = await request.json()
 
     await connectToDatabase()
 
-    // Find the user's exam result
-    const examResult = await ExamResult.findOne({ userId })
+    // Find and update user
+    const updatedUser = await User.findByIdAndUpdate(userId, { examAllowed }, { new: true, runValidators: true })
 
-    if (!examResult) {
-      return NextResponse.json({ message: "User has not taken the exam yet" }, { status: 404 })
+    if (!updatedUser) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 })
     }
 
-    // Update the canRetake field
-    examResult.canRetake = canRetake
-    await examResult.save()
-
-    return NextResponse.json({ message: "Exam retake permission updated successfully" }, { status: 200 })
+    return NextResponse.json(
+      {
+        message: "User updated successfully",
+        examAllowed: updatedUser.examAllowed,
+      },
+      { status: 200 },
+    )
   } catch (error) {
-    console.error("Error updating retake permission:", error)
+    console.error("Error updating user:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })
   }
 }

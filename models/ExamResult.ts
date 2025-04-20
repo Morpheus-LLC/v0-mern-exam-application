@@ -13,7 +13,6 @@ export interface IExamResult extends Document {
     chemistry: number
   }
   date: Date
-  canRetake: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -32,7 +31,6 @@ const ExamResultSchema: Schema = new Schema(
       chemistry: { type: Number, default: 0 },
     },
     date: { type: Date, default: Date.now },
-    canRetake: { type: Boolean, default: false },
   },
   { timestamps: true },
 )

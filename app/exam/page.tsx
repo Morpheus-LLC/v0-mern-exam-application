@@ -12,17 +12,17 @@ import SimpleWebcam from "@/components/simple-webcam"
 import { AlertCircle } from "lucide-react"
 
 type Question = {
-  _id: string
+  id: string
   text: string
   options: string[]
-  subject: "math" | "physics" | "chemistry"
+  subject: "math" | "physics" | "chemistry" // Updated subjects to match EAMCET
 }
 
 type ExamState = {
   currentQuestionIndex: number
   answers: Record<string, string>
   timeRemaining: number
-  currentSubject: "math" | "physics" | "chemistry"
+  currentSubject: "math" | "physics" | "chemistry" // Updated subjects
   subjectProgress: Record<string, number>
 }
 
@@ -30,10 +30,12 @@ export default function ExamPage() {
   const router = useRouter()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
+  const [canTakeExam, setCanTakeExam] = useState(true)
+  const [alreadyAttempted, setAlreadyAttempted] = useState(false)
   const [tabSwitched, setTabSwitched] = useState(false)
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
   const [audioStatus, setAudioStatus] = useState<"initializing" | "ready" | "error" | "playing">("initializing")
-  const [alreadyTakenExam, setAlreadyTakenExam] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string[]>([])
 
   // TTS references
   const speechSynthRef = useRef<SpeechSynthesis | null>(null)
@@ -52,11 +54,18 @@ export default function ExamPage() {
     },
   })
 
+  // Add debug log function
+  const addDebugLog = (message: string) => {
+    console.log(message)
+    setDebugInfo((prev) => [message, ...prev.slice(0, 9)]) // Keep last 10 messages
+  }
+
   // Initialize Text-to-Speech
   useEffect(() => {
     // Check if browser supports speech synthesis
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       speechSynthRef.current = window.speechSynthesis
+      addDebugLog("Speech synthesis is supported")
       setAudioStatus("ready")
 
       // Initialize with a silent utterance to unlock audio on some browsers
@@ -64,11 +73,12 @@ export default function ExamPage() {
         const silentUtterance = new SpeechSynthesisUtterance(" ")
         silentUtterance.volume = 0
         speechSynthRef.current.speak(silentUtterance)
+        addDebugLog("Silent utterance initialized")
       } catch (error) {
-        console.error("Error initializing silent utterance:", error)
+        addDebugLog(`Error initializing silent utterance: ${error instanceof Error ? error.message : String(error)}`)
       }
     } else {
-      console.error("Speech synthesis is not supported in this browser")
+      addDebugLog("Speech synthesis is not supported in this browser")
       setAudioStatus("error")
     }
 
@@ -86,7 +96,10 @@ export default function ExamPage() {
 
   // Function to play warning using TTS
   const playWarningSound = () => {
+    addDebugLog("Attempting to play warning using TTS")
+
     if (!speechSynthRef.current) {
+      addDebugLog("Speech synthesis not available")
       setAudioStatus("error")
       return false
     }
@@ -119,24 +132,29 @@ export default function ExamPage() {
 
         if (femaleVoice) {
           utterance.voice = femaleVoice
+          addDebugLog(`Using voice: ${femaleVoice.name}`)
         } else {
           // Just use the first available voice
           utterance.voice = voices[0]
+          addDebugLog(`Using default voice: ${voices[0].name}`)
         }
       }
 
       // Add event handlers
       utterance.onstart = () => {
+        addDebugLog("TTS warning started")
         setAudioStatus("playing")
         isSpeakingRef.current = true
       }
 
       utterance.onend = () => {
+        addDebugLog("TTS warning ended")
         setAudioStatus("ready")
         isSpeakingRef.current = false
       }
 
-      utterance.onerror = () => {
+      utterance.onerror = (event) => {
+        addDebugLog(`TTS error: ${event.error}`)
         setAudioStatus("error")
         isSpeakingRef.current = false
       }
@@ -145,7 +163,7 @@ export default function ExamPage() {
       speechSynthRef.current.speak(utterance)
       return true
     } catch (error) {
-      console.error("Error playing TTS warning:", error)
+      addDebugLog(`Error playing TTS warning: ${error instanceof Error ? error.message : String(error)}`)
       setAudioStatus("error")
       return false
     }
@@ -158,6 +176,7 @@ export default function ExamPage() {
         // User left the tab
         setTabSwitched(true)
         setTabSwitchCount((prev) => prev + 1)
+        addDebugLog("Tab switched - trying to play warning")
 
         // Try to play warning
         playWarningSound()
@@ -172,6 +191,7 @@ export default function ExamPage() {
       } else if (document.visibilityState === "visible" && tabSwitched) {
         // User returned to the tab
         setTabSwitched(false)
+        addDebugLog("User returned to tab")
 
         // Clear interval when user returns to tab
         if (warningIntervalRef.current) {
@@ -206,44 +226,40 @@ export default function ExamPage() {
     }
   }, [tabSwitched])
 
-  // Check if user has already taken the exam
-  useEffect(() => {
-    const checkExamStatus = async () => {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        router.push("/login")
-        return
-      }
-
-      try {
-        const response = await fetch("/api/exam/status", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to check exam status")
-        }
-
-        const data = await response.json()
-        if (data.hasTakenExam) {
-          setAlreadyTakenExam(true)
-        }
-      } catch (error) {
-        console.error("Error checking exam status:", error)
-      }
-    }
-
-    checkExamStatus()
-  }, [router])
-
   useEffect(() => {
     const token = localStorage.getItem("token")
 
     if (!token) {
       router.push("/login")
       return
+    }
+
+    // Check if user can take the exam
+    const checkExamEligibility = async () => {
+      try {
+        const response = await fetch("/api/exam/eligibility", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          setCanTakeExam(false)
+          setAlreadyAttempted(data.message === "You have already taken this exam")
+          return
+        }
+
+        // If eligible, fetch questions
+        fetchQuestions()
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to check exam eligibility. Please try again.",
+          variant: "destructive",
+        })
+        router.push("/dashboard")
+      }
     }
 
     // Fetch questions
@@ -260,26 +276,7 @@ export default function ExamPage() {
         }
 
         const data = await response.json()
-
-        // Ensure we have exactly 60 questions (20 per subject)
-        const mathQuestions = data.questions.filter((q) => q.subject === "math").slice(0, 20)
-        const physicsQuestions = data.questions.filter((q) => q.subject === "physics").slice(0, 20)
-        const chemistryQuestions = data.questions.filter((q) => q.subject === "chemistry").slice(0, 20)
-
-        const balancedQuestions = [...mathQuestions, ...physicsQuestions, ...chemistryQuestions]
-
-        // If we don't have enough questions, redirect to dashboard with an error
-        if (balancedQuestions.length < 60) {
-          toast({
-            title: "Error",
-            description: "Not enough questions available for the exam. Please contact an administrator.",
-            variant: "destructive",
-          })
-          router.push("/dashboard")
-          return
-        }
-
-        setQuestions(balancedQuestions)
+        setQuestions(data.questions)
       } catch (error) {
         toast({
           title: "Error",
@@ -292,7 +289,7 @@ export default function ExamPage() {
       }
     }
 
-    fetchQuestions()
+    checkExamEligibility()
 
     // Set up timer
     const timer = setInterval(() => {
@@ -319,11 +316,11 @@ export default function ExamPage() {
     const currentQuestion = questions[examState.currentQuestionIndex]
 
     setExamState((prev) => {
-      const newAnswers = { ...prev.answers, [currentQuestion._id]: answer }
+      const newAnswers = { ...prev.answers, [currentQuestion.id]: answer }
 
       // Update subject progress
       const subjectQuestions = questions.filter((q) => q.subject === currentQuestion.subject)
-      const answeredInSubject = subjectQuestions.filter((q) => newAnswers[q._id]).length
+      const answeredInSubject = subjectQuestions.filter((q) => newAnswers[q.id]).length
       const subjectProgress = {
         ...prev.subjectProgress,
         [currentQuestion.subject]: Math.floor((answeredInSubject / 20) * 100),
@@ -405,18 +402,32 @@ export default function ExamPage() {
     }
   }
 
-  if (alreadyTakenExam) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading exam questions...</p>
+      </div>
+    )
+  }
+
+  if (!canTakeExam) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
-            <CardTitle className="text-2xl">Exam Already Completed</CardTitle>
+            <CardTitle className="text-2xl text-center">Exam Access Restricted</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="mb-4">You have already taken this exam. Each user is allowed to take the exam only once.</p>
-            <p className="mb-4">If you believe this is an error, please contact an administrator.</p>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-center">
+              <AlertCircle className="w-16 h-16 text-red-500" />
+            </div>
+            <p className="text-center">
+              {alreadyAttempted
+                ? "You have already taken this exam. Each candidate is allowed only one attempt."
+                : "You are not authorized to take this exam. Please contact the administrator for assistance."}
+            </p>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex justify-center">
             <Button onClick={() => router.push("/dashboard")}>Return to Dashboard</Button>
           </CardFooter>
         </Card>
@@ -424,10 +435,22 @@ export default function ExamPage() {
     )
   }
 
-  if (loading || questions.length === 0) {
+  if (questions.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Loading exam questions...</p>
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">No Questions Available</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center">
+              There are no questions available for this exam. Please try again later or contact the administrator.
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button onClick={() => router.push("/dashboard")}>Return to Dashboard</Button>
+          </CardFooter>
+        </Card>
       </div>
     )
   }
@@ -493,7 +516,7 @@ export default function ExamPage() {
             <CardContent>
               <p className="text-lg mb-4">{currentQuestion.text}</p>
               <RadioGroup
-                value={examState.answers[currentQuestion._id] || ""}
+                value={examState.answers[currentQuestion.id] || ""}
                 onValueChange={handleAnswerSelect}
                 className="space-y-3"
               >

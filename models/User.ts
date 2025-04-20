@@ -18,6 +18,8 @@ export interface IUser extends Document {
   homeAddress?: string
   rationCard?: string
   rationCardNumber?: string
+  examAttempts?: number
+  examAllowed?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -41,6 +43,8 @@ const UserSchema: Schema = new Schema(
     homeAddress: { type: String },
     rationCard: { type: String, enum: ["none", "white", "pink"], default: "none" },
     rationCardNumber: { type: String },
+    examAttempts: { type: Number, default: 0 },
+    examAllowed: { type: Boolean, default: true },
   },
   { timestamps: true },
 )

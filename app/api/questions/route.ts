@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import connectToDatabase from "@/lib/mongodb"
 import Question from "@/models/Question"
+import { loadTestData } from "@/lib/test-data"
 
 export async function GET(request: Request) {
   try {
@@ -25,6 +26,17 @@ export async function GET(request: Request) {
     }
 
     const questions = await Question.find(query)
+
+    // Check if questions collection is empty, load test data if it is
+    if (questions.length === 0) {
+      console.log("No questions found, loading test data...")
+      await loadTestData()
+      const newQuestions = await Question.find(query)
+
+      // Shuffle the questions for exams
+      const shuffled = [...newQuestions].sort(() => Math.random() - 0.5)
+      return NextResponse.json({ questions: shuffled }, { status: 200 })
+    }
 
     // Shuffle the questions for exams
     const shuffled = [...questions].sort(() => Math.random() - 0.5)
