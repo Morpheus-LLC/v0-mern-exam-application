@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server"
-import { headers } from "next/headers"
+import { getAuthToken } from "@/lib/api-helpers"
 import connectToDatabase from "@/lib/mongodb"
 import ExamResult from "@/models/ExamResult"
 
 export async function GET(request: Request) {
   try {
-    const headersList = headers()
-    const authorization = headersList.get("authorization")
+    const token = getAuthToken()
 
-    if (!authorization || !authorization.startsWith("Bearer ")) {
+    if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
     // Check if admin (in a real app, you'd verify the JWT)
-    const tokenParts = authorization.split(" ")[1].split("-")
+    const tokenParts = token.split("-")
     const role = tokenParts[4]
 
     if (role !== "admin") {

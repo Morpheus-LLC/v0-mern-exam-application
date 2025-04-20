@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server"
-import { headers } from "next/headers"
+import { getAuthToken } from "@/lib/api-helpers"
 import connectToDatabase from "@/lib/mongodb"
 import User from "@/models/User"
 import mongoose from "mongoose"
 
 export async function GET(request: Request) {
   try {
-    const headersList = headers()
-    const authorization = headersList.get("authorization")
+    const token = getAuthToken()
 
-    if (!authorization || !authorization.startsWith("Bearer ")) {
+    if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
-
-    const token = authorization.split(" ")[1]
 
     // Extract user ID from token (in a real app, you'd verify the JWT)
     const tokenParts = token.split("-")

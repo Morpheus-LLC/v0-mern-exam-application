@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { headers } from "next/headers"
+import { getAuthToken } from "@/lib/api-helpers"
 import connectToDatabase from "@/lib/mongodb"
 import User from "@/models/User"
 import ExamAttempt from "@/models/ExamAttempt"
@@ -7,10 +7,9 @@ import mongoose from "mongoose"
 
 export async function POST(request: Request) {
   try {
-    const headersList = headers()
-    const authorization = headersList.get("authorization")
+    const token = getAuthToken()
 
-    if (!authorization || !authorization.startsWith("Bearer ")) {
+    if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
@@ -21,7 +20,7 @@ export async function POST(request: Request) {
     }
 
     // Extract user ID from token
-    const tokenParts = authorization.split(" ")[1].split("-")
+    const tokenParts = token.split("-")
     const userId = tokenParts[2]
 
     await connectToDatabase()
