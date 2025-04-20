@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import dbConnect from "@/lib/mongodb"
+import connectToDatabase from "@/lib/mongodb"
 import Question from "@/models/Question"
-import jwt from "jsonwebtoken"
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
 export async function POST(request: Request) {
   try {
-    await dbConnect()
-
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -17,14 +12,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Verify token and check if admin
-    try {
-      const decoded = jwt.verify(authorization.split(" ")[1], JWT_SECRET) as { role: string }
-      if (decoded.role !== "admin") {
-        return NextResponse.json({ message: "Forbidden" }, { status: 403 })
-      }
-    } catch (error) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
+    // Check if admin (in a real app, you'd verify the JWT)
+    const tokenParts = authorization.split(" ")[1].split("-")
+    const role = tokenParts[4]
+
+    if (role !== "admin") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
     }
 
     const { csvData, subject } = await request.json()
@@ -32,6 +25,8 @@ export async function POST(request: Request) {
     if (!csvData || !subject) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
+
+    await connectToDatabase()
 
     // Process CSV data
     // Format: question, option1, option2, option3, option4, correctOption
@@ -51,18 +46,17 @@ export async function POST(request: Request) {
       const [questionText, ...options] = parts
       const correctOption = options.pop() // Last item is the correct option
 
-      const question = {
+      const questionData = {
         text: questionText,
         options: options,
         correctOption: correctOption,
         subject: subject,
       }
 
+      const question = new Question(questionData)
+      await question.save()
       newQuestions.push(question)
     }
-
-    // Insert questions in bulk
-    await Question.insertMany(newQuestions)
 
     return NextResponse.json(
       {

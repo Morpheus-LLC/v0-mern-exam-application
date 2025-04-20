@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import dbConnect from "@/lib/mongodb"
+import connectToDatabase from "@/lib/mongodb"
 import Question from "@/models/Question"
-import jwt from "jsonwebtoken"
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    await dbConnect()
-
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -17,24 +12,26 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Verify token and check if admin
-    try {
-      const decoded = jwt.verify(authorization.split(" ")[1], JWT_SECRET) as { role: string }
-      if (decoded.role !== "admin") {
-        return NextResponse.json({ message: "Forbidden" }, { status: 403 })
-      }
-    } catch (error) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
+    // Check if admin (in a real app, you'd verify the JWT)
+    const tokenParts = authorization.split(" ")[1].split("-")
+    const role = tokenParts[4]
+
+    if (role !== "admin") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
     }
 
     const questionId = params.id
 
-    // Find and delete question
-    const deletedQuestion = await Question.findByIdAndDelete(questionId)
+    await connectToDatabase()
 
-    if (!deletedQuestion) {
+    const question = await Question.findById(questionId)
+
+    if (!question) {
       return NextResponse.json({ message: "Question not found" }, { status: 404 })
     }
+
+    // Delete question
+    await Question.findByIdAndDelete(questionId)
 
     return NextResponse.json({ message: "Question deleted successfully" }, { status: 200 })
   } catch (error) {

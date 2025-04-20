@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import dbConnect from "@/lib/mongodb"
+import connectToDatabase from "@/lib/mongodb"
 import User from "@/models/User"
 import Question from "@/models/Question"
 import ExamResult from "@/models/ExamResult"
-import jwt from "jsonwebtoken"
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+import mongoose from "mongoose"
 
 export async function POST(request: Request) {
   try {
-    await dbConnect()
-
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -19,32 +15,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const { answers, examDuration, tabSwitchCount } = await request.json()
+    const { answers } = await request.json()
 
     if (!answers || typeof answers !== "object") {
       return NextResponse.json({ message: "Invalid answers format" }, { status: 400 })
     }
 
     // Extract user ID from token
-    let userId
-    try {
-      const decoded = jwt.verify(authorization.split(" ")[1], JWT_SECRET) as { id: string }
-      userId = decoded.id
-    } catch (error) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
-    }
+    const tokenParts = authorization.split(" ")[1].split("-")
+    const userId = tokenParts[2]
+
+    await connectToDatabase()
 
     // Find user
-    const user = await User.findById(userId)
+    let user
+    try {
+      if (mongoose.Types.ObjectId.isValid(userId)) {
+        user = await User.findById(userId)
+      }
+    } catch (error) {
+      console.error("Error finding user:", error)
+    }
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 })
     }
 
     // Get all questions to check answers
-    const allQuestions = await Question.find({
-      _id: { $in: Object.keys(answers) },
-    })
+    const allQuestions = await Question.find({ _id: { $in: Object.keys(answers) } })
 
     // Calculate score
     let correctAnswers = 0
@@ -89,7 +87,7 @@ export async function POST(request: Request) {
     const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100 * 10) / 10 : 0
 
     // Save result
-    const result = await ExamResult.create({
+    const result = new ExamResult({
       userId: user._id,
       userName: user.name,
       userEmail: user.email,
@@ -97,23 +95,15 @@ export async function POST(request: Request) {
       correctAnswers,
       score,
       subjectScores,
-      answers,
       date: new Date(),
-      examDuration: examDuration || 0,
-      tabSwitchCount: tabSwitchCount || 0,
     })
+
+    await result.save()
 
     return NextResponse.json(
       {
         message: "Exam submitted successfully",
-        result: {
-          id: result._id,
-          totalQuestions,
-          correctAnswers,
-          score,
-          subjectScores,
-          date: result.date,
-        },
+        result,
       },
       { status: 200 },
     )

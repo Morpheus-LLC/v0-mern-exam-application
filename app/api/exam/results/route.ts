@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import dbConnect from "@/lib/mongodb"
+import connectToDatabase from "@/lib/mongodb"
 import ExamResult from "@/models/ExamResult"
-import jwt from "jsonwebtoken"
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+import mongoose from "mongoose"
 
 export async function GET(request: Request) {
   try {
-    await dbConnect()
-
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -18,18 +14,23 @@ export async function GET(request: Request) {
     }
 
     // Extract user ID from token
-    let userId
-    try {
-      const decoded = jwt.verify(authorization.split(" ")[1], JWT_SECRET) as { id: string }
-      userId = decoded.id
-    } catch (error) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
-    }
+    const tokenParts = authorization.split(" ")[1].split("-")
+    const userId = tokenParts[2]
+
+    await connectToDatabase()
 
     // Find the most recent exam result for this user
-    const result = await ExamResult.findOne({ userId }).sort({ date: -1 })
+    let userResults = []
 
-    if (!result) {
+    try {
+      if (mongoose.Types.ObjectId.isValid(userId)) {
+        userResults = await ExamResult.find({ userId }).sort({ date: -1 }).limit(1)
+      }
+    } catch (error) {
+      console.error("Error finding results:", error)
+    }
+
+    if (userResults.length === 0) {
       // If no results found, return a placeholder
       const placeholderResult = {
         totalQuestions: 60,
@@ -45,19 +46,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ result: placeholderResult }, { status: 200 })
     }
 
-    return NextResponse.json(
-      {
-        result: {
-          id: result._id,
-          totalQuestions: result.totalQuestions,
-          correctAnswers: result.correctAnswers,
-          score: result.score,
-          subjectScores: result.subjectScores,
-          date: result.date,
-        },
-      },
-      { status: 200 },
-    )
+    // Return the most recent result
+    return NextResponse.json({ result: userResults[0] }, { status: 200 })
   } catch (error) {
     console.error("Error fetching results:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })

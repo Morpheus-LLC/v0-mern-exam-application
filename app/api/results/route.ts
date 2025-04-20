@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import dbConnect from "@/lib/mongodb"
+import connectToDatabase from "@/lib/mongodb"
 import ExamResult from "@/models/ExamResult"
-import jwt from "jsonwebtoken"
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
 export async function GET(request: Request) {
   try {
-    await dbConnect()
-
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -17,17 +12,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Verify token and check if admin
-    try {
-      const decoded = jwt.verify(authorization.split(" ")[1], JWT_SECRET) as { role: string }
-      if (decoded.role !== "admin") {
-        return NextResponse.json({ message: "Forbidden" }, { status: 403 })
-      }
-    } catch (error) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
+    // Check if admin (in a real app, you'd verify the JWT)
+    const tokenParts = authorization.split(" ")[1].split("-")
+    const role = tokenParts[4]
+
+    if (role !== "admin") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
     }
 
-    // Get all results
+    await connectToDatabase()
+
     const results = await ExamResult.find().sort({ date: -1 })
 
     return NextResponse.json({ results }, { status: 200 })

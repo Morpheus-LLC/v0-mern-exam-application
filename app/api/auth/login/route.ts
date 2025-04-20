@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server"
-import dbConnect from "@/lib/mongodb"
+import connectToDatabase from "@/lib/mongodb"
 import User from "@/models/User"
-import jwt from "jsonwebtoken"
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
 export async function POST(request: Request) {
   try {
-    await dbConnect()
-
     const { email, password } = await request.json()
 
     // Validate input
@@ -16,29 +11,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
-    // Find user and include password for comparison
-    const user = await User.findOne({ email }).select("+password")
+    await connectToDatabase()
 
+    // Find user
+    const user = await User.findOne({ email, password })
     if (!user) {
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
     }
 
-    // Compare password
-    const isMatch = await user.comparePassword(password)
-    if (!isMatch) {
-      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" },
-    )
+    // In a real application, you would generate a JWT
+    // For demo purposes, we'll create a simple token
+    const token = `demo-token-${user._id}-${Date.now()}-${user.role || "user"}`
 
     return NextResponse.json(
       {
