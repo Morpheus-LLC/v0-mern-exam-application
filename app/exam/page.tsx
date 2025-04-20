@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,6 +32,13 @@ export default function ExamPage() {
   const [loading, setLoading] = useState(true)
   const [tabSwitched, setTabSwitched] = useState(false)
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
+  const [audioStatus, setAudioStatus] = useState<"initializing" | "ready" | "error" | "playing">("initializing")
+  const [debugInfo, setDebugInfo] = useState<string[]>([])
+
+  // TTS references
+  const speechSynthRef = useRef<SpeechSynthesis | null>(null)
+  const warningIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isSpeakingRef = useRef<boolean>(false)
 
   const [examState, setExamState] = useState<ExamState>({
     currentQuestionIndex: 0,
@@ -45,6 +52,121 @@ export default function ExamPage() {
     },
   })
 
+  // Add debug log function
+  const addDebugLog = (message: string) => {
+    console.log(message)
+    setDebugInfo((prev) => [message, ...prev.slice(0, 9)]) // Keep last 10 messages
+  }
+
+  // Initialize Text-to-Speech
+  useEffect(() => {
+    // Check if browser supports speech synthesis
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      speechSynthRef.current = window.speechSynthesis
+      addDebugLog("Speech synthesis is supported")
+      setAudioStatus("ready")
+
+      // Initialize with a silent utterance to unlock audio on some browsers
+      try {
+        const silentUtterance = new SpeechSynthesisUtterance(" ")
+        silentUtterance.volume = 0
+        speechSynthRef.current.speak(silentUtterance)
+        addDebugLog("Silent utterance initialized")
+      } catch (error) {
+        addDebugLog(`Error initializing silent utterance: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    } else {
+      addDebugLog("Speech synthesis is not supported in this browser")
+      setAudioStatus("error")
+    }
+
+    // Clean up on unmount
+    return () => {
+      if (warningIntervalRef.current) {
+        clearInterval(warningIntervalRef.current)
+      }
+
+      if (speechSynthRef.current) {
+        speechSynthRef.current.cancel()
+      }
+    }
+  }, [])
+
+  // Function to play warning using TTS
+  const playWarningSound = () => {
+    addDebugLog("Attempting to play warning using TTS")
+
+    if (!speechSynthRef.current) {
+      addDebugLog("Speech synthesis not available")
+      setAudioStatus("error")
+      return false
+    }
+
+    // Cancel any ongoing speech
+    speechSynthRef.current.cancel()
+
+    try {
+      // Create utterance with warning message
+      const utterance = new SpeechSynthesisUtterance(
+        "Warning! Please return to the exam tab immediately. Leaving the exam tab is not allowed.",
+      )
+
+      // Configure utterance
+      utterance.rate = 1.0 // Normal speed
+      utterance.pitch = 1.0 // Normal pitch
+      utterance.volume = 1.0 // Maximum volume
+
+      // Use a different voice if available (usually female voices are more audible)
+      const voices = speechSynthRef.current.getVoices()
+      if (voices.length > 0) {
+        // Try to find a female voice
+        const femaleVoice = voices.find(
+          (voice) =>
+            voice.name.includes("female") ||
+            voice.name.includes("Female") ||
+            voice.name.includes("woman") ||
+            voice.name.includes("Woman"),
+        )
+
+        if (femaleVoice) {
+          utterance.voice = femaleVoice
+          addDebugLog(`Using voice: ${femaleVoice.name}`)
+        } else {
+          // Just use the first available voice
+          utterance.voice = voices[0]
+          addDebugLog(`Using default voice: ${voices[0].name}`)
+        }
+      }
+
+      // Add event handlers
+      utterance.onstart = () => {
+        addDebugLog("TTS warning started")
+        setAudioStatus("playing")
+        isSpeakingRef.current = true
+      }
+
+      utterance.onend = () => {
+        addDebugLog("TTS warning ended")
+        setAudioStatus("ready")
+        isSpeakingRef.current = false
+      }
+
+      utterance.onerror = (event) => {
+        addDebugLog(`TTS error: ${event.error}`)
+        setAudioStatus("error")
+        isSpeakingRef.current = false
+      }
+
+      // Speak the warning
+      speechSynthRef.current.speak(utterance)
+      return true
+    } catch (error) {
+      addDebugLog(`Error playing TTS warning: ${error instanceof Error ? error.message : String(error)}`)
+      setAudioStatus("error")
+      return false
+    }
+  }
+
   // Tab visibility detection
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -52,9 +174,36 @@ export default function ExamPage() {
         // User left the tab
         setTabSwitched(true)
         setTabSwitchCount((prev) => prev + 1)
+        addDebugLog("Tab switched - trying to play warning")
+
+        // Try to play warning
+        playWarningSound()
+
+        // Set up interval to play warning repeatedly until user returns
+        warningIntervalRef.current = setInterval(() => {
+          // Only play if not already speaking
+          if (!isSpeakingRef.current) {
+            playWarningSound()
+          }
+        }, 3000) // Play every 3 seconds
       } else if (document.visibilityState === "visible" && tabSwitched) {
         // User returned to the tab
         setTabSwitched(false)
+        addDebugLog("User returned to tab")
+
+        // Clear interval when user returns to tab
+        if (warningIntervalRef.current) {
+          clearInterval(warningIntervalRef.current)
+          warningIntervalRef.current = null
+        }
+
+        // Stop any ongoing speech
+        if (speechSynthRef.current) {
+          speechSynthRef.current.cancel()
+          isSpeakingRef.current = false
+        }
+
+        setAudioStatus("ready")
 
         // Show a toast notification when they return
         toast({
@@ -69,6 +218,9 @@ export default function ExamPage() {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange)
+      if (warningIntervalRef.current) {
+        clearInterval(warningIntervalRef.current)
+      }
     }
   }, [tabSwitched])
 
@@ -505,19 +657,8 @@ export default function ExamPage() {
         },
       ]
 
-      // Filter out any English questions (just to be safe)
-      const filteredQuestions = eamcetQuestions.filter((q) => q.subject !== "english")
-
-      // Make sure we have exactly 60 questions (20 per subject)
-      const mathQuestions = filteredQuestions.filter((q) => q.subject === "math").slice(0, 20)
-      const physicsQuestions = filteredQuestions.filter((q) => q.subject === "physics").slice(0, 20)
-      const chemistryQuestions = filteredQuestions.filter((q) => q.subject === "chemistry").slice(0, 20)
-
-      // Combine and shuffle
-      const finalQuestions = [...mathQuestions, ...physicsQuestions, ...chemistryQuestions]
-      const shuffled = [...finalQuestions].sort(() => Math.random() - 0.5)
-
-      // Set the questions
+      // Shuffle the questions and ensure we have exactly 60 questions
+      const shuffled = [...eamcetQuestions].sort(() => Math.random() - 0.5).slice(0, 60)
       setQuestions(shuffled)
     }
   }, [loading, questions])
@@ -669,9 +810,7 @@ export default function ExamPage() {
       <div className="space-y-1 mb-6">
         <div className="flex justify-between">
           <p className="text-sm font-medium">Overall Progress</p>
-          <p className="text-sm font-medium">
-            {totalAnswered}/{totalQuestions} Questions
-          </p>
+          <p className="text-sm font-medium">{totalAnswered}/60 Questions</p>
         </div>
         <Progress value={overallProgress} className="h-2" />
       </div>

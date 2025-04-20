@@ -65,6 +65,52 @@ export default function LoginPage() {
     }
   }
 
+  // Function to handle test sign-in
+  const handleTestSignIn = async () => {
+    setLoading(true)
+
+    // Use demo credentials
+    const testCredentials = {
+      email: "demo@example.com",
+      password: "password123",
+    }
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(testCredentials),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Test sign-in failed")
+      }
+
+      // Store token in localStorage
+      localStorage.setItem("token", data.token)
+
+      toast({
+        title: "Test sign-in successful",
+        description: "You are now logged in as a test user.",
+      })
+
+      router.push("/dashboard")
+    } catch (error) {
+      console.error("Test sign-in error:", error)
+      toast({
+        title: "Test sign-in failed",
+        description: error instanceof Error ? error.message : "Failed to sign in with test account",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 px-4">
       <Card className="w-full max-w-md">
@@ -101,6 +147,18 @@ export default function LoginPage() {
               {loading ? "Logging in..." : "Log In"}
             </Button>
           </form>
+
+          {/* Test Sign In Button */}
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              className="w-full border-dashed border-gray-300 hover:bg-gray-100"
+              onClick={handleTestSignIn}
+              disabled={loading}
+            >
+              Test Sign In (Demo User)
+            </Button>
+          </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <p className="text-sm text-gray-500 dark:text-gray-400">

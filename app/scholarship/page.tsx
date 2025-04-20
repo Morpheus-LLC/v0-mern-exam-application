@@ -250,37 +250,33 @@ export default function ScholarshipPage() {
             <div className="space-y-8">
               <Card>
                 <CardHeader>
-                  <CardTitle>Substantial Fee Reduction</CardTitle>
-                  <CardDescription>Based on your rank in the eligibility test</CardDescription>
+                  <CardTitle>Scholarship Benefits by Rank</CardTitle>
+                  <CardDescription>Based on your performance in the eligibility test</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-4">
                     <li className="flex items-start">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
                       <div>
-                        <span className="font-semibold">For the top 100 rankers:</span> ₹ 30,000/- University Fee for
-                        the entire 4-year Engineering Course.
+                        <span className="font-semibold">For ranks 1-100:</span> 4 years engineering tuition sponsorship
+                        with Learning-Doing-Earning (LDE) program, placement assistance, and real-time projects in the
+                        college campus on respective core engineering.
                       </div>
                     </li>
                     <li className="flex items-start">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
                       <div>
-                        <span className="font-semibold">For rankers between 101 to 1000:</span> ₹ 20,000/- University
-                        Fee for the entire 4-year Engineering Course.
+                        <span className="font-semibold">For ranks 101-1000:</span> Rs.30,000/- college fee (4 years)
+                        with Learning-Doing-Earning (LDE) program, placement assistance, and real-time projects in the
+                        college campus on respective core engineering.
                       </div>
                     </li>
                     <li className="flex items-start">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
                       <div>
-                        <span className="font-semibold">For rankers between 1001 to 3100:</span> ₹ 10,000/- University
-                        Fee for the entire 4-year Engineering Course.
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                      <div>
-                        <span className="font-semibold">Note:</span> This applies to the 4-year Engineering program.
-                        Specific fee benefits for Diploma programs are available upon request.
+                        <span className="font-semibold">For ranks 1001-10000:</span> Learning-Doing-Earning (LDE)
+                        program, placement assistance, and real-time projects in the college campus on respective core
+                        engineering.
                       </div>
                     </li>
                   </ul>

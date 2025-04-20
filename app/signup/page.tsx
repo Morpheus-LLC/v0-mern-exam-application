@@ -507,25 +507,33 @@ export default function SignupPage() {
                 <tr>
                   <td className="border p-4 font-medium">1 - 100</td>
                   <td className="border p-4">
-                    <p className="font-medium">100% Sponsorship on complete Engineering Education, including:</p>
-                    <p className="mt-2">* Full Tuition Fee Coverage</p>
-                    <p className="mt-2">* Complete Hostel Fee Coverage</p>
+                    <p className="font-medium">4 years engineering tuition sponsorship, including:</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Learning-Doing-Earning (LDE) program</li>
+                      <li>Placement assistance</li>
+                      <li>Real-time projects in the college campus on respective core engineering</li>
+                    </ul>
                   </td>
                 </tr>
                 <tr>
                   <td className="border p-4 font-medium">101 - 1000</td>
                   <td className="border p-4">
-                    <p className="font-medium">
-                      50% Sponsorship on complete Engineering Education (Tuition & other academic fees)
-                    </p>
+                    <p className="font-medium">Rs.30,000/- college fee (4 years), including:</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Learning-Doing-Earning (LDE) program</li>
+                      <li>Placement assistance</li>
+                      <li>Real-time projects in the college campus on respective core engineering</li>
+                    </ul>
                   </td>
                 </tr>
                 <tr>
                   <td className="border p-4 font-medium">1001 - 10000</td>
                   <td className="border p-4">
-                    <p className="font-medium">
-                      30% Sponsorship on complete Engineering Education (Tuition & other academic fees)
-                    </p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Learning-Doing-Earning (LDE) program</li>
+                      <li>Placement assistance</li>
+                      <li>Real-time projects in the college campus on respective core engineering</li>
+                    </ul>
                   </td>
                 </tr>
               </tbody>
