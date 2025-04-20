@@ -15,15 +15,16 @@ type Question = {
   id: string
   text: string
   options: string[]
-  subject: "math" | "physics" | "chemistry" // Updated subjects to match EAMCET
+  subject: "math" | "physics" | "chemistry"
+  selectedOption?: string
 }
 
 type ExamState = {
   currentQuestionIndex: number
-  answers: Record<string, string>
   timeRemaining: number
-  currentSubject: "math" | "physics" | "chemistry" // Updated subjects
+  currentSubject: "math" | "physics" | "chemistry"
   subjectProgress: Record<string, number>
+  attemptId: string | null
 }
 
 export default function ExamPage() {
@@ -36,15 +37,16 @@ export default function ExamPage() {
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
   const [audioStatus, setAudioStatus] = useState<"initializing" | "ready" | "error" | "playing">("initializing")
   const [debugInfo, setDebugInfo] = useState<string[]>([])
+  const [savingAnswer, setSavingAnswer] = useState(false)
 
   // TTS references
   const speechSynthRef = useRef<SpeechSynthesis | null>(null)
   const warningIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isSpeakingRef = useRef<boolean>(false)
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const [examState, setExamState] = useState<ExamState>({
     currentQuestionIndex: 0,
-    answers: {},
     timeRemaining: 60 * 60, // 60 minutes in seconds
     currentSubject: "math",
     subjectProgress: {
@@ -52,6 +54,7 @@ export default function ExamPage() {
       physics: 0,
       chemistry: 0,
     },
+    attemptId: null,
   })
 
   // Add debug log function
@@ -90,6 +93,10 @@ export default function ExamPage() {
 
       if (speechSynthRef.current) {
         speechSynthRef.current.cancel()
+      }
+
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
       }
     }
   }, [])
@@ -226,6 +233,7 @@ export default function ExamPage() {
     }
   }, [tabSwitched])
 
+  // Check for existing attempt or create a new one
   useEffect(() => {
     const token = localStorage.getItem("token")
 
@@ -247,11 +255,19 @@ export default function ExamPage() {
           const data = await response.json()
           setCanTakeExam(false)
           setAlreadyAttempted(data.message === "You have already taken this exam")
+          setLoading(false)
           return
         }
 
-        // If eligible, fetch questions
-        fetchQuestions()
+        const data = await response.json()
+
+        if (data.hasActiveAttempt) {
+          // User has an active attempt, load it
+          loadExistingAttempt(data.attemptId)
+        } else {
+          // Create a new attempt
+          createNewAttempt()
+        }
       } catch (error) {
         toast({
           title: "Error",
@@ -262,49 +278,156 @@ export default function ExamPage() {
       }
     }
 
-    // Fetch questions
-    const fetchQuestions = async () => {
+    // Load existing attempt
+    const loadExistingAttempt = async (attemptId: string) => {
       try {
-        const response = await fetch("/api/questions", {
+        const response = await fetch("/api/exam/attempt", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         })
 
         if (!response.ok) {
-          throw new Error("Failed to fetch questions")
+          if (response.status === 410) {
+            // Attempt has expired
+            toast({
+              title: "Exam Expired",
+              description: "Your exam time has expired.",
+              variant: "destructive",
+            })
+            router.push("/dashboard")
+            return
+          }
+          throw new Error("Failed to load exam attempt")
         }
 
         const data = await response.json()
+
+        // Set questions and exam state
         setQuestions(data.questions)
+        setExamState({
+          currentQuestionIndex: 0,
+          timeRemaining: data.timeRemaining,
+          currentSubject: data.questions[0]?.subject || "math",
+          subjectProgress: calculateSubjectProgress(data.questions),
+          attemptId: data.attemptId,
+        })
+
+        // Start the timer
+        startTimer(data.timeRemaining)
+
+        setLoading(false)
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to load exam questions. Please try again.",
+          description: "Failed to load exam attempt. Please try again.",
           variant: "destructive",
         })
         router.push("/dashboard")
-      } finally {
+      }
+    }
+
+    // Create a new attempt
+    const createNewAttempt = async () => {
+      try {
+        const response = await fetch("/api/exam/attempt", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to create exam attempt")
+        }
+
+        const data = await response.json()
+
+        // Set questions and exam state
+        setQuestions(data.questions)
+        setExamState({
+          currentQuestionIndex: 0,
+          timeRemaining: data.timeRemaining,
+          currentSubject: data.questions[0]?.subject || "math",
+          subjectProgress: calculateSubjectProgress(data.questions),
+          attemptId: data.attemptId,
+        })
+
+        // Start the timer
+        startTimer(data.timeRemaining)
+
         setLoading(false)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create exam attempt. Please try again.",
+          variant: "destructive",
+        })
+        router.push("/dashboard")
       }
     }
 
     checkExamEligibility()
+  }, [router])
 
-    // Set up timer
-    const timer = setInterval(() => {
+  // Calculate subject progress
+  const calculateSubjectProgress = (questions: Question[]) => {
+    const subjectProgress: Record<string, number> = {
+      math: 0,
+      physics: 0,
+      chemistry: 0,
+    }
+
+    const subjectQuestions: Record<string, number> = {
+      math: 0,
+      physics: 0,
+      chemistry: 0,
+    }
+
+    const subjectAnswered: Record<string, number> = {
+      math: 0,
+      physics: 0,
+      chemistry: 0,
+    }
+
+    questions.forEach((question) => {
+      if (question.subject) {
+        subjectQuestions[question.subject]++
+        if (question.selectedOption) {
+          subjectAnswered[question.subject]++
+        }
+      }
+    })
+
+    Object.keys(subjectProgress).forEach((subject) => {
+      if (subjectQuestions[subject] > 0) {
+        subjectProgress[subject] = Math.floor((subjectAnswered[subject] / subjectQuestions[subject]) * 100)
+      }
+    })
+
+    return subjectProgress
+  }
+
+  // Start the timer
+  const startTimer = (initialTime: number) => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+    }
+
+    timerIntervalRef.current = setInterval(() => {
       setExamState((prev) => {
         if (prev.timeRemaining <= 1) {
-          clearInterval(timer)
+          // Time's up, submit the exam
+          if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current)
+          }
           handleSubmitExam()
           return prev
         }
         return { ...prev, timeRemaining: prev.timeRemaining - 1 }
       })
     }, 1000)
-
-    return () => clearInterval(timer)
-  }, [router])
+  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -312,26 +435,65 @@ export default function ExamPage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
-  const handleAnswerSelect = (answer: string) => {
+  const handleAnswerSelect = async (answer: string) => {
+    if (!examState.attemptId) return
+
     const currentQuestion = questions[examState.currentQuestionIndex]
 
-    setExamState((prev) => {
-      const newAnswers = { ...prev.answers, [currentQuestion.id]: answer }
-
-      // Update subject progress
-      const subjectQuestions = questions.filter((q) => q.subject === currentQuestion.subject)
-      const answeredInSubject = subjectQuestions.filter((q) => newAnswers[q.id]).length
-      const subjectProgress = {
-        ...prev.subjectProgress,
-        [currentQuestion.subject]: Math.floor((answeredInSubject / 20) * 100),
+    // Update local state first for immediate feedback
+    setQuestions((prev) => {
+      const newQuestions = [...prev]
+      newQuestions[examState.currentQuestionIndex] = {
+        ...newQuestions[examState.currentQuestionIndex],
+        selectedOption: answer,
       }
+      return newQuestions
+    })
+
+    // Update subject progress
+    setExamState((prev) => {
+      const newSubjectProgress = calculateSubjectProgress([
+        ...questions.slice(0, examState.currentQuestionIndex),
+        { ...currentQuestion, selectedOption: answer },
+        ...questions.slice(examState.currentQuestionIndex + 1),
+      ])
 
       return {
         ...prev,
-        answers: newAnswers,
-        subjectProgress,
+        subjectProgress: newSubjectProgress,
       }
     })
+
+    // Save answer to server
+    setSavingAnswer(true)
+    try {
+      const token = localStorage.getItem("token")
+
+      const response = await fetch("/api/exam/attempt/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          questionId: currentQuestion.id,
+          selectedOption: answer,
+          timeRemaining: examState.timeRemaining,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save answer")
+      }
+    } catch (error) {
+      toast({
+        title: "Warning",
+        description: "Failed to save your answer. Please check your connection.",
+        variant: "destructive",
+      })
+    } finally {
+      setSavingAnswer(false)
+    }
   }
 
   const handleNextQuestion = () => {
@@ -371,16 +533,14 @@ export default function ExamPage() {
         return
       }
 
-      // Submit answers
+      // Submit exam
       const response = await fetch("/api/exam/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          answers: examState.answers,
-        }),
+        body: JSON.stringify({}), // No need to send answers, they're already saved
       })
 
       if (!response.ok) {
@@ -456,7 +616,7 @@ export default function ExamPage() {
   }
 
   const currentQuestion = questions[examState.currentQuestionIndex]
-  const totalAnswered = Object.keys(examState.answers).length
+  const totalAnswered = questions.filter((q) => q.selectedOption).length
   const overallProgress = Math.floor((totalAnswered / questions.length) * 100)
   const totalQuestions = questions.length // Should be 60
 
@@ -516,19 +676,25 @@ export default function ExamPage() {
             <CardContent>
               <p className="text-lg mb-4">{currentQuestion.text}</p>
               <RadioGroup
-                value={examState.answers[currentQuestion.id] || ""}
+                value={currentQuestion.selectedOption || ""}
                 onValueChange={handleAnswerSelect}
                 className="space-y-3"
               >
                 {currentQuestion.options.map((option, index) => (
                   <div key={index} className="flex items-center space-x-2 border p-3 rounded-md">
-                    <RadioGroupItem value={option} id={`option-${index}`} />
+                    <RadioGroupItem value={option} id={`option-${index}`} disabled={savingAnswer} />
                     <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                       {option}
                     </Label>
                   </div>
                 ))}
               </RadioGroup>
+              {savingAnswer && (
+                <div className="mt-2 text-xs text-gray-500 flex items-center">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500 mr-2"></div>
+                  Saving your answer...
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={handlePrevQuestion} disabled={examState.currentQuestionIndex === 0}>

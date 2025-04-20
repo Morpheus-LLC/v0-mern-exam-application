@@ -4,6 +4,7 @@ import connectToDatabase from "@/lib/mongodb"
 import User from "@/models/User"
 import Question from "@/models/Question"
 import ExamResult from "@/models/ExamResult"
+import ExamAttempt from "@/models/ExamAttempt"
 import mongoose from "mongoose"
 
 export async function POST(request: Request) {
@@ -15,17 +16,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const { answers } = await request.json()
-
-    if (!answers || typeof answers !== "object") {
-      return NextResponse.json({ message: "Invalid answers format" }, { status: 400 })
-    }
+    await connectToDatabase()
 
     // Extract user ID from token
     const tokenParts = authorization.split(" ")[1].split("-")
     const userId = tokenParts[2]
-
-    await connectToDatabase()
 
     // Find user
     let user
@@ -41,19 +36,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 })
     }
 
-    // Check if user is allowed to take the exam
-    if (user.examAllowed === false) {
-      return NextResponse.json({ message: "You are not allowed to take this exam" }, { status: 403 })
+    // Find active attempt
+    const activeAttempt = await ExamAttempt.findOne({ userId: user._id, isActive: true })
+
+    if (!activeAttempt) {
+      return NextResponse.json({ message: "No active exam attempt found" }, { status: 404 })
     }
 
-    // Check if user has already taken the exam
-    const existingResults = await ExamResult.find({ userId: user._id })
-    if (existingResults.length > 0 && user.examAttempts >= 1) {
-      return NextResponse.json({ message: "You have already taken this exam" }, { status: 403 })
+    // Check if the attempt has already been submitted
+    if (activeAttempt.hasSubmitted) {
+      return NextResponse.json({ message: "This exam attempt has already been submitted" }, { status: 400 })
     }
 
     // Get all questions to check answers
-    const allQuestions = await Question.find({ _id: { $in: Object.keys(answers) } })
+    const questionIds = activeAttempt.questions.map((q) => q.id)
+    const allQuestions = await Question.find({ _id: { $in: questionIds } })
+
+    // Create a map of question IDs to correct options
+    const correctOptionsMap = new Map()
+    allQuestions.forEach((question) => {
+      correctOptionsMap.set(question._id.toString(), question.correctOption)
+    })
 
     // Calculate score
     let correctAnswers = 0
@@ -70,13 +73,13 @@ export async function POST(request: Request) {
     }
 
     // Check answers against correct options
-    allQuestions.forEach((question) => {
-      const questionId = question._id.toString()
-      const userAnswer = answers[questionId]
+    activeAttempt.questions.forEach((question) => {
+      const correctOption = correctOptionsMap.get(question.id)
+      const userAnswer = question.selectedOption
 
-      if (userAnswer) {
+      if (question.subject) {
         subjectTotal[question.subject]++
-        if (question.correctOption === userAnswer) {
+        if (userAnswer && correctOption === userAnswer) {
           correctAnswers++
           subjectCorrect[question.subject]++
         }
@@ -111,8 +114,10 @@ export async function POST(request: Request) {
 
     await result.save()
 
-    // Update user exam attempts
-    await User.findByIdAndUpdate(user._id, { $inc: { examAttempts: 1 } })
+    // Mark attempt as submitted and inactive
+    activeAttempt.hasSubmitted = true
+    activeAttempt.isActive = false
+    await activeAttempt.save()
 
     return NextResponse.json(
       {

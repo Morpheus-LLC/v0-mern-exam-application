@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<{ name: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasActiveExam, setHasActiveExam] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -42,7 +43,37 @@ export default function DashboardPage() {
       }
     }
 
+    // Check for active exam attempt
+    const checkActiveExam = async () => {
+      try {
+        const response = await fetch("/api/exam/attempt", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.ok) {
+          // User has an active exam
+          setHasActiveExam(true)
+
+          // Redirect to exam page
+          toast({
+            title: "Active Exam Found",
+            description: "You have an ongoing exam. Redirecting to the exam page.",
+          })
+
+          setTimeout(() => {
+            router.push("/exam")
+          }, 1500)
+        }
+      } catch (error) {
+        // No active exam or error, continue to dashboard
+        console.log("No active exam found")
+      }
+    }
+
     fetchUser()
+    checkActiveExam()
   }, [router])
 
   const handleStartExam = () => {
@@ -80,7 +111,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Start New Exam</CardTitle>
             <CardDescription>
-              Take a comprehensive exam with questions from Math, Science, Chemistry, and English
+              Take a comprehensive exam with questions from Math, Physics, and Chemistry
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -88,9 +119,16 @@ export default function DashboardPage() {
               The exam consists of 60 questions (20 from each subject: Mathematics, Physics, and Chemistry) and is
               randomized for each attempt. You'll have 60 minutes to complete the exam.
             </p>
+            {hasActiveExam && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  You have an active exam in progress. Click the button below to continue your exam.
+                </p>
+              </div>
+            )}
           </CardContent>
           <CardFooter>
-            <Button onClick={handleStartExam}>Start Exam</Button>
+            <Button onClick={handleStartExam}>{hasActiveExam ? "Continue Exam" : "Start Exam"}</Button>
           </CardFooter>
         </Card>
 
