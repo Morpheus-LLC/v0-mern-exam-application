@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/use-toast"
 import AdminQuestions from "@/components/admin-questions"
 import AdminResults from "@/components/admin-results"
 import AdminUsers from "@/components/admin-users"
+import AdminAllAttempts from "@/components/admin-all-attempts"
 import { AlertCircle } from "lucide-react"
 
 export default function AdminDashboardPage() {
@@ -143,10 +144,11 @@ export default function AdminDashboardPage() {
       </Card>
 
       <Tabs defaultValue="questions" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="questions">Manage Questions</TabsTrigger>
           <TabsTrigger value="users">Manage Users</TabsTrigger>
           <TabsTrigger value="results">View Results</TabsTrigger>
+          <TabsTrigger value="attempts">Exam Attempts</TabsTrigger>
         </TabsList>
         <TabsContent value="questions">
           <Card>
@@ -178,6 +180,17 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <AdminResults />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="attempts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Exam Attempts</CardTitle>
+              <CardDescription>View all exam attempts with detailed question and answer analysis</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AdminAllAttempts />
             </CardContent>
           </Card>
         </TabsContent>

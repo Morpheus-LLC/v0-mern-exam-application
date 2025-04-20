@@ -22,6 +22,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import AdminUserAttempts from "./admin-user-attempts"
+import AdminAttemptDetails from "./admin-attempt-details"
 
 type UserDetailsProps = {
   userId: string | null
@@ -58,6 +60,9 @@ export default function AdminUserDetailsModal({ userId, isOpen, onClose }: UserD
   const [loading, setLoading] = useState(false)
   const [allowExam, setAllowExam] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [attemptsDialogOpen, setAttemptsDialogOpen] = useState(false)
+  const [attemptDetailsOpen, setAttemptDetailsOpen] = useState(false)
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -160,6 +165,15 @@ export default function AdminUserDetailsModal({ userId, isOpen, onClose }: UserD
         variant: "destructive",
       })
     }
+  }
+
+  const handleViewAttempts = () => {
+    setAttemptsDialogOpen(true)
+  }
+
+  const handleViewAttemptDetails = (attemptId: string) => {
+    setSelectedAttemptId(attemptId)
+    setAttemptDetailsOpen(true)
   }
 
   if (!isOpen) return null
@@ -312,6 +326,20 @@ export default function AdminUserDetailsModal({ userId, isOpen, onClose }: UserD
                     </Button>
                   </div>
                 </div>
+
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">View Exam Attempts</h4>
+                      <p className="text-xs text-gray-500">
+                        View all exam attempts by this user, including questions and answers.
+                      </p>
+                    </div>
+                    <Button variant="outline" onClick={handleViewAttempts}>
+                      View Attempts
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
@@ -343,6 +371,19 @@ export default function AdminUserDetailsModal({ userId, isOpen, onClose }: UserD
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminUserAttempts
+        userId={userId}
+        isOpen={attemptsDialogOpen}
+        onClose={() => setAttemptsDialogOpen(false)}
+        onViewAttempt={handleViewAttemptDetails}
+      />
+
+      <AdminAttemptDetails
+        attemptId={selectedAttemptId}
+        isOpen={attemptDetailsOpen}
+        onClose={() => setAttemptDetailsOpen(false)}
+      />
     </>
   )
 }
