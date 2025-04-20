@@ -65,6 +65,7 @@ export default function AdminQuestions() {
     }
   }
 
+  // Update the handleAddQuestion function to validate that a correct option is selected
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -85,7 +86,7 @@ export default function AdminQuestions() {
       if (!newQuestion.correctOption) {
         toast({
           title: "Validation Error",
-          description: "Please select a correct option",
+          description: "Please select a correct option by clicking 'Set as Correct' next to one of the options",
           variant: "destructive",
         })
         return

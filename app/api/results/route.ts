@@ -5,7 +5,7 @@ import ExamResult from "@/models/ExamResult"
 
 export async function GET(request: Request) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {

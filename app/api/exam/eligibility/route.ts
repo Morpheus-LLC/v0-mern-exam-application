@@ -8,7 +8,7 @@ import mongoose from "mongoose"
 
 export async function GET(request: Request) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {

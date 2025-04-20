@@ -9,7 +9,7 @@ import mongoose from "mongoose"
 // Create a new attempt
 export async function POST(request: Request) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
 // Get current attempt
 export async function GET(request: Request) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {

@@ -5,7 +5,7 @@ import User from "@/models/User"
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {
