@@ -163,7 +163,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="bg-white border-b">
         <div className="container mx-auto">
-          <ul className="flex flex-wrap">
+          <ul className="flex flex-wrap justify-center">
             <li className="border-r">
               <Link href="/" className="block px-6 py-4 font-medium hover:bg-gray-100">
                 HOME
@@ -327,7 +327,11 @@ export default function Home() {
         {/* LDE Section */}
         <section className="py-8">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-bold text-center mb-6">LEARNING-DOING-EARNING (LDE)</h2>
+            <h2 className="text-2xl font-bold text-center mb-6">
+              <span className="text-blue-600">LEARNING</span>-<span className="text-green-600">DOING</span>-
+              <span className="text-amber-600">EARNING</span>
+              <span className="text-gray-700"> (LDE)</span>
+            </h2>
             <div className="space-y-6">
               <div>
                 <p className="text-lg">
