@@ -28,7 +28,7 @@ export default function AdminQuestions() {
     text: "",
     options: ["", "", "", ""],
     correctOption: "",
-    subject: "math" as "math" | "science" | "chemistry" | "english",
+    subject: "math" as "math" | "physics" | "chemistry",
   })
   const [csvData, setCsvData] = useState("")
   const [csvSubject, setCsvSubject] = useState<"math" | "science" | "chemistry" | "english">("math")
@@ -73,10 +73,19 @@ export default function AdminQuestions() {
       if (!token) return
 
       // Validate form
-      if (!newQuestion.text || newQuestion.options.some((opt) => !opt) || !newQuestion.correctOption) {
+      if (!newQuestion.text || newQuestion.options.some((opt) => !opt)) {
         toast({
           title: "Validation Error",
-          description: "Please fill in all fields",
+          description: "Please fill in all question fields and options",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (!newQuestion.correctOption) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a correct option",
           variant: "destructive",
         })
         return
@@ -228,9 +237,8 @@ export default function AdminQuestions() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="math">Math</SelectItem>
-                <SelectItem value="science">Science</SelectItem>
+                <SelectItem value="physics">Physics</SelectItem>
                 <SelectItem value="chemistry">Chemistry</SelectItem>
-                <SelectItem value="english">English</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -290,9 +298,8 @@ export default function AdminQuestions() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="math">Math</SelectItem>
-                  <SelectItem value="science">Science</SelectItem>
+                  <SelectItem value="physics">Physics</SelectItem>
                   <SelectItem value="chemistry">Chemistry</SelectItem>
-                  <SelectItem value="english">English</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -320,10 +327,12 @@ export default function AdminQuestions() {
                   />
                   <Button
                     type="button"
-                    variant="outline"
+                    variant={newQuestion.correctOption === option ? "secondary" : "outline"}
                     size="sm"
                     onClick={() => setNewQuestion({ ...newQuestion, correctOption: option })}
-                    className={newQuestion.correctOption === option ? "bg-green-100" : ""}
+                    className={
+                      newQuestion.correctOption === option ? "bg-green-100 text-green-800 hover:bg-green-200" : ""
+                    }
                   >
                     {newQuestion.correctOption === option ? "Correct ✓" : "Set as Correct"}
                   </Button>
@@ -348,9 +357,8 @@ export default function AdminQuestions() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="math">Math</SelectItem>
-                  <SelectItem value="science">Science</SelectItem>
+                  <SelectItem value="physics">Physics</SelectItem>
                   <SelectItem value="chemistry">Chemistry</SelectItem>
-                  <SelectItem value="english">English</SelectItem>
                 </SelectContent>
               </Select>
             </div>

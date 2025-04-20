@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import { users } from "@/lib/mock-db"
+import dbConnect from "@/lib/mongodb"
+import User from "@/models/User"
+import jwt from "jsonwebtoken"
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
 export async function GET(request: Request) {
   try {
+    await dbConnect()
+
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -13,36 +19,29 @@ export async function GET(request: Request) {
 
     const token = authorization.split(" ")[1]
 
-    // Extract user role from token (in a real app, you'd verify the JWT)
-    const tokenParts = token.split("-")
-    const userId = tokenParts[2]
-    const role = tokenParts[4] || "user"
+    try {
+      // Verify token
+      const decoded = jwt.verify(token, JWT_SECRET) as { id: string }
 
-    // Find the user by ID
-    const user = users.find((u) => u.id === userId)
+      // Find user by ID
+      const user = await User.findById(decoded.id)
 
-    if (user) {
+      if (!user) {
+        return NextResponse.json({ message: "User not found" }, { status: 404 })
+      }
+
       return NextResponse.json(
         {
-          id: user.id,
+          id: user._id,
           name: user.name,
           email: user.email,
           role: user.role || "user",
         },
         { status: 200 },
       )
+    } catch (error) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
     }
-
-    // Fallback to demo user if not found
-    return NextResponse.json(
-      {
-        id: "1",
-        name: "Demo User",
-        email: "demo@example.com",
-        role: "user",
-      },
-      { status: 200 },
-    )
   } catch (error) {
     console.error("Error fetching user:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })

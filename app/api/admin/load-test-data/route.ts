@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import dbConnect from "@/lib/mongodb"
-import Question from "@/models/Question"
+import { loadTestData, clearAllData } from "@/lib/test-data"
 import jwt from "jsonwebtoken"
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request) {
   try {
     await dbConnect()
 
@@ -27,18 +27,23 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: "Invalid token" }, { status: 401 })
     }
 
-    const questionId = params.id
+    const { clearExisting } = await request.json()
 
-    // Find and delete question
-    const deletedQuestion = await Question.findByIdAndDelete(questionId)
-
-    if (!deletedQuestion) {
-      return NextResponse.json({ message: "Question not found" }, { status: 404 })
+    if (clearExisting) {
+      await clearAllData()
     }
 
-    return NextResponse.json({ message: "Question deleted successfully" }, { status: 200 })
+    const result = await loadTestData()
+
+    return NextResponse.json(
+      {
+        message: "Test data loaded successfully",
+        result,
+      },
+      { status: 200 },
+    )
   } catch (error) {
-    console.error("Error deleting question:", error)
+    console.error("Error loading test data:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })
   }
 }

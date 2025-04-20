@@ -8,11 +8,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 import AdminQuestions from "@/components/admin-questions"
 import AdminResults from "@/components/admin-results"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Loader2 } from "lucide-react"
 
 export default function AdminDashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<{ name: string; role: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingTestData, setLoadingTestData] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -23,16 +36,22 @@ export default function AdminDashboardPage() {
     }
 
     // Check if admin
-    const tokenParts = token.split("-")
-    const role = tokenParts[4]
+    try {
+      const tokenParts = token.split(".")
+      const payload = JSON.parse(atob(tokenParts[1]))
 
-    if (role !== "admin") {
-      toast({
-        title: "Access denied",
-        description: "You do not have admin privileges.",
-        variant: "destructive",
-      })
-      router.push("/login")
+      if (payload.role !== "admin") {
+        toast({
+          title: "Access denied",
+          description: "You do not have admin privileges.",
+          variant: "destructive",
+        })
+        router.push("/login")
+        return
+      }
+    } catch (error) {
+      localStorage.removeItem("token")
+      router.push("/admin")
       return
     }
 
@@ -71,6 +90,46 @@ export default function AdminDashboardPage() {
     })
   }
 
+  const handleLoadTestData = async (clearExisting: boolean) => {
+    setLoadingTestData(true)
+
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) return
+
+      const response = await fetch("/api/admin/load-test-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ clearExisting }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to load test data")
+      }
+
+      const data = await response.json()
+
+      toast({
+        title: "Test data loaded",
+        description: `Successfully loaded ${data.result.users} users, ${data.result.questions} questions, and ${data.result.results} exam results.`,
+      })
+
+      // Refresh the page to show new data
+      window.location.reload()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load test data. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingTestData(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -83,9 +142,41 @@ export default function AdminDashboardPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <Button variant="outline" onClick={handleLogout}>
-          Logout
-        </Button>
+        <div className="flex gap-4">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" disabled={loadingTestData}>
+                {loadingTestData ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Load Test Data"
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Load Test Data</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will load sample test data into the database. Would you like to clear existing data first?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleLoadTestData(false)}>Keep Existing Data</AlertDialogAction>
+                <AlertDialogAction onClick={() => handleLoadTestData(true)} className="bg-red-500 hover:bg-red-600">
+                  Clear & Replace
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Button variant="outline" onClick={handleLogout}>
+            Logout
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="questions" className="w-full">

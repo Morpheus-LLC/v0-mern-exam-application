@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import { questions } from "@/lib/mock-db"
+import dbConnect from "@/lib/mongodb"
+import Question from "@/models/Question"
+import jwt from "jsonwebtoken"
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
 export async function POST(request: Request) {
   try {
+    await dbConnect()
+
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -11,12 +17,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if admin (in a real app, you'd verify the JWT)
-    const tokenParts = authorization.split(" ")[1].split("-")
-    const role = tokenParts[4]
-
-    if (role !== "admin") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+    // Verify token and check if admin
+    try {
+      const decoded = jwt.verify(authorization.split(" ")[1], JWT_SECRET) as { role: string }
+      if (decoded.role !== "admin") {
+        return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+      }
+    } catch (error) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
     }
 
     const { csvData, subject } = await request.json()
@@ -44,16 +52,17 @@ export async function POST(request: Request) {
       const correctOption = options.pop() // Last item is the correct option
 
       const question = {
-        id: `${subject}-csv-${Date.now()}-${i}`,
         text: questionText,
         options: options,
         correctOption: correctOption,
         subject: subject,
       }
 
-      questions.push(question)
       newQuestions.push(question)
     }
+
+    // Insert questions in bulk
+    await Question.insertMany(newQuestions)
 
     return NextResponse.json(
       {

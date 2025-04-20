@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
-import { questions } from "@/lib/mock-db"
+import dbConnect from "@/lib/mongodb"
+import Question from "@/models/Question"
+import jwt from "jsonwebtoken"
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
 export async function GET(request: Request) {
   try {
+    await dbConnect()
+
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -11,18 +17,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
+    // Verify token
+    try {
+      jwt.verify(authorization.split(" ")[1], JWT_SECRET)
+    } catch (error) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
+    }
+
     // Get subject filter from URL if present
     const { searchParams } = new URL(request.url)
     const subject = searchParams.get("subject")
 
-    let filteredQuestions = [...questions]
-
+    let query = {}
     if (subject) {
-      filteredQuestions = filteredQuestions.filter((q) => q.subject === subject)
+      query = { subject }
     }
 
+    // Get questions
+    const questions = await Question.find(query)
+
     // Shuffle the questions for exams
-    const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5)
+    const shuffled = [...questions].sort(() => Math.random() - 0.5)
 
     return NextResponse.json({ questions: shuffled }, { status: 200 })
   } catch (error) {
@@ -33,6 +48,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await dbConnect()
+
     const headersList = headers()
     const authorization = headersList.get("authorization")
 
@@ -40,12 +57,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if admin (in a real app, you'd verify the JWT)
-    const tokenParts = authorization.split(" ")[1].split("-")
-    const role = tokenParts[4]
-
-    if (role !== "admin") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+    // Verify token and check if admin
+    try {
+      const decoded = jwt.verify(authorization.split(" ")[1], JWT_SECRET) as { role: string }
+      if (decoded.role !== "admin") {
+        return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+      }
+    } catch (error) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 })
     }
 
     const newQuestion = await request.json()
@@ -56,16 +75,13 @@ export async function POST(request: Request) {
     }
 
     // Add question to database
-    const questionId = `${newQuestion.subject}-${Date.now()}`
-    const question = {
-      id: questionId,
+    const question = await Question.create({
       text: newQuestion.text,
       options: newQuestion.options,
       correctOption: newQuestion.correctOption,
       subject: newQuestion.subject,
-    }
-
-    questions.push(question)
+      difficulty: newQuestion.difficulty || "medium",
+    })
 
     return NextResponse.json({ message: "Question added successfully", question }, { status: 201 })
   } catch (error) {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { CheckCircle } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
 
 type ExamResult = {
   totalQuestions: number
@@ -13,10 +14,8 @@ type ExamResult = {
   score: number
   subjectScores: {
     math: number
-    science: number
+    physics: number
     chemistry: number
-    english: number
-    physics?: number
   }
   date: string
 }
@@ -64,25 +63,6 @@ export default function ResultsPage() {
     fetchResults()
   }, [router])
 
-  // For demo purposes, let's create a sample result
-  useEffect(() => {
-    if (!result && !loading) {
-      const sampleResult: ExamResult = {
-        totalQuestions: 60,
-        correctAnswers: 46,
-        score: 76.7,
-        subjectScores: {
-          math: 85,
-          physics: 75,
-          chemistry: 70,
-        },
-        date: new Date().toISOString(),
-      }
-
-      setResult(sampleResult)
-    }
-  }, [loading, result])
-
   const handleBackToDashboard = () => {
     router.push("/dashboard")
   }
@@ -124,6 +104,39 @@ export default function ResultsPage() {
           <div className="bg-gray-50 p-6 rounded-lg">
             <p className="text-sm text-gray-500 mb-2">Your score</p>
             <p className="text-4xl font-bold">{result.score}%</p>
+            <p className="text-sm text-gray-500 mt-2">
+              {result.correctAnswers} correct out of {result.totalQuestions} questions
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Subject Performance</h3>
+
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Mathematics</span>
+                  <span className="text-sm font-medium">{result.subjectScores.math}%</span>
+                </div>
+                <Progress value={result.subjectScores.math} className="h-2" />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Physics</span>
+                  <span className="text-sm font-medium">{result.subjectScores.physics}%</span>
+                </div>
+                <Progress value={result.subjectScores.physics} className="h-2" />
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">Chemistry</span>
+                  <span className="text-sm font-medium">{result.subjectScores.chemistry}%</span>
+                </div>
+                <Progress value={result.subjectScores.chemistry} className="h-2" />
+              </div>
+            </div>
           </div>
 
           <p className="text-gray-600">We will review your results and contact you soon with further information.</p>
