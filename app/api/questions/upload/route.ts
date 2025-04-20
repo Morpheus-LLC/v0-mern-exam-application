@@ -5,7 +5,7 @@ import Question from "@/models/Question"
 
 export async function POST(request: Request) {
   try {
-    const headersList = await headers()
+    const headersList = headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {

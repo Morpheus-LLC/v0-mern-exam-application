@@ -6,7 +6,7 @@ import { loadTestData } from "@/lib/test-data"
 
 export async function GET(request: Request) {
   try {
-    const headersList = await headers()
+    const headersList = headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const headersList = await headers()
+    const headersList = headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {

@@ -6,7 +6,7 @@ import ExamAttempt from "@/models/ExamAttempt"
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const headersList = await headers()
+    const headersList = headers()
     const authorization = headersList.get("authorization")
 
     if (!authorization || !authorization.startsWith("Bearer ")) {
