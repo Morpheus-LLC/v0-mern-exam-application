@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server"
-import { getAuthToken } from "@/lib/api-helpers"
+import { headers } from "next/headers"
 import connectToDatabase from "@/lib/mongodb"
 import ExamResult from "@/models/ExamResult"
 import mongoose from "mongoose"
 
 export async function GET(request: Request) {
   try {
-    const token = getAuthToken()
+    const headersList = headers()
+    const authorization = headersList.get("authorization")
 
-    if (!token) {
+    if (!authorization || !authorization.startsWith("Bearer ")) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
     // Extract user ID from token
-    const tokenParts = token.split("-")
+    const tokenParts = authorization.split(" ")[1].split("-")
     const userId = tokenParts[2]
 
     await connectToDatabase()

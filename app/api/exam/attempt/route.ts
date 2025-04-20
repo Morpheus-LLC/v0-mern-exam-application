@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getAuthToken } from "@/lib/api-helpers"
+import { headers } from "next/headers"
 import connectToDatabase from "@/lib/mongodb"
 import User from "@/models/User"
 import Question from "@/models/Question"
@@ -9,14 +9,15 @@ import mongoose from "mongoose"
 // Create a new attempt
 export async function POST(request: Request) {
   try {
-    const token = getAuthToken()
+    const headersList = headers()
+    const authorization = headersList.get("authorization")
 
-    if (!token) {
+    if (!authorization || !authorization.startsWith("Bearer ")) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
     // Extract user ID from token
-    const tokenParts = token.split("-")
+    const tokenParts = authorization.split(" ")[1].split("-")
     const userId = tokenParts[2]
 
     await connectToDatabase()
@@ -111,14 +112,15 @@ export async function POST(request: Request) {
 // Get current attempt
 export async function GET(request: Request) {
   try {
-    const token = getAuthToken()
+    const headersList = headers()
+    const authorization = headersList.get("authorization")
 
-    if (!token) {
+    if (!authorization || !authorization.startsWith("Bearer ")) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
     // Extract user ID from token
-    const tokenParts = token.split("-")
+    const tokenParts = authorization.split(" ")[1].split("-")
     const userId = tokenParts[2]
 
     await connectToDatabase()

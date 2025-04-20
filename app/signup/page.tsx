@@ -193,300 +193,383 @@ export default function SignupPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
-        <Card className="w-full max-w-3xl mx-auto">
-          <CardHeader>
-            <CardTitle className="text-2xl">Create an account</CardTitle>
-            <CardDescription>Enter your information to create an account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Personal Information</h3>
+        <div className="grid md:grid-cols-2 gap-6 w-full max-w-5xl mx-auto">
+          <div className="hidden md:flex flex-col justify-center items-center">
+            <div className="relative w-full aspect-square rounded-lg overflow-hidden shadow-lg">
+              <img
+                src="/students-success.png"
+                alt="Successful students celebrating"
+                className="object-cover w-full h-full"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                <h3 className="text-white text-lg font-bold">Join Our Success Story</h3>
+                <p className="text-white text-sm">Unlock your potential with our engineering scholarship</p>
+              </div>
+            </div>
+            <div className="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-100 w-full">
+              <h3 className="font-medium text-blue-800">Why Register?</h3>
+              <ul className="mt-2 space-y-2 text-sm text-blue-700">
+                <li className="flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                  Financial support for your engineering education
+                </li>
+                <li className="flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                  Learning-Doing-Earning program
+                </li>
+                <li className="flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                  Real-time industry experience
+                </li>
+                <li className="flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                  Placement assistance
+                </li>
+              </ul>
+            </div>
+          </div>
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle className="text-2xl">Create an account</CardTitle>
+              <CardDescription>Enter your information to create an account</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Personal Information</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">
-                      Full Name<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="John Doe"
-                      required
-                      value={formData.name}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">
-                      Email<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="john@example.com"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">
-                      Gender<span className="text-red-500">*</span>
-                    </Label>
-                    <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="age">
-                      Age<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="age"
-                      name="age"
-                      type="number"
-                      placeholder="18"
-                      required
-                      min="15"
-                      max="30"
-                      value={formData.age}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber">
-                      Phone Number<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="phoneNumber"
-                      name="phoneNumber"
-                      type="tel"
-                      placeholder="Your Phone Number"
-                      required
-                      value={formData.phoneNumber}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="alternatePhoneNumber">Alternate Phone Number</Label>
-                    <Input
-                      id="alternatePhoneNumber"
-                      name="alternatePhoneNumber"
-                      type="tel"
-                      placeholder="Alternate Phone Number (Optional)"
-                      value={formData.alternatePhoneNumber}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="district">
-                      District<span className="text-red-500">*</span>
-                    </Label>
-                    <Select value={formData.district} onValueChange={(value) => handleSelectChange("district", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select district" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {telanganaDistricts.map((district) => (
-                          <SelectItem key={district} value={district.toLowerCase()}>
-                            {district}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rationCard">Ration Card</Label>
-                    <Select
-                      value={formData.rationCard}
-                      onValueChange={(value) => handleSelectChange("rationCard", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select ration card type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="white">White Card</SelectItem>
-                        <SelectItem value="pink">Pink Card</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Conditionally show ration card number field */}
-                  {isRationCardNumberRequired && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="rationCardNumber">
-                        Ration Card Number<span className="text-red-500">*</span>
+                      <Label htmlFor="name">
+                        Full Name<span className="text-red-500">*</span>
                       </Label>
                       <Input
-                        id="rationCardNumber"
-                        name="rationCardNumber"
-                        placeholder="Enter your ration card number"
+                        id="name"
+                        name="name"
+                        placeholder="John Doe"
                         required
-                        value={formData.rationCardNumber}
+                        value={formData.name}
                         onChange={handleChange}
                       />
                     </div>
-                  )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">
+                        Email<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="john@example.com"
+                        required
+                        value={formData.email}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="gender">
+                        Gender<span className="text-red-500">*</span>
+                      </Label>
+                      <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="age">
+                        Age<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="age"
+                        name="age"
+                        type="number"
+                        placeholder="18"
+                        required
+                        min="15"
+                        max="30"
+                        value={formData.age}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">
+                        Phone Number<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        type="tel"
+                        placeholder="Your Phone Number"
+                        required
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="alternatePhoneNumber">Alternate Phone Number</Label>
+                      <Input
+                        id="alternatePhoneNumber"
+                        name="alternatePhoneNumber"
+                        type="tel"
+                        placeholder="Alternate Phone Number (Optional)"
+                        value={formData.alternatePhoneNumber}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="district">
+                        District<span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={formData.district}
+                        onValueChange={(value) => handleSelectChange("district", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select district" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {telanganaDistricts.map((district) => (
+                            <SelectItem key={district} value={district.toLowerCase()}>
+                              {district}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rationCard">Ration Card</Label>
+                      <Select
+                        value={formData.rationCard}
+                        onValueChange={(value) => handleSelectChange("rationCard", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select ration card type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="white">White Card</SelectItem>
+                          <SelectItem value="pink">Pink Card</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Conditionally show ration card number field */}
+                    {isRationCardNumberRequired && (
+                      <div className="space-y-2">
+                        <Label htmlFor="rationCardNumber">
+                          Ration Card Number<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="rationCardNumber"
+                          name="rationCardNumber"
+                          placeholder="Enter your ration card number"
+                          required
+                          value={formData.rationCardNumber}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="homeAddress">
+                      Home Address<span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="homeAddress"
+                      name="homeAddress"
+                      placeholder="Your home address"
+                      required
+                      value={formData.homeAddress}
+                      onChange={handleChange}
+                      rows={3}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="homeAddress">
-                    Home Address<span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    id="homeAddress"
-                    name="homeAddress"
-                    placeholder="Your home address"
-                    required
-                    value={formData.homeAddress}
-                    onChange={handleChange}
-                    rows={3}
-                  />
-                </div>
-              </div>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Educational Information</h3>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Educational Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="intermediateHallTicket">
+                        Intermediate Hall Ticket Number<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="intermediateHallTicket"
+                        name="intermediateHallTicket"
+                        placeholder="Intermediate Hall Ticket Number"
+                        required
+                        value={formData.intermediateHallTicket}
+                        onChange={handleChange}
+                      />
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="intermediateHallTicket">
-                      Intermediate Hall Ticket Number<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="intermediateHallTicket"
-                      name="intermediateHallTicket"
-                      placeholder="Intermediate Hall Ticket Number"
-                      required
-                      value={formData.intermediateHallTicket}
-                      onChange={handleChange}
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="eamcetHallTicket">
+                        EAMCET Hall Ticket Number<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="eamcetHallTicket"
+                        name="eamcetHallTicket"
+                        placeholder="EAMCET Hall Ticket Number"
+                        required
+                        value={formData.eamcetHallTicket}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="collegeName">
+                        College Name<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="collegeName"
+                        name="collegeName"
+                        placeholder="Engineering College Name"
+                        required
+                        value={formData.collegeName}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rollNumber">
+                        Roll Number<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="rollNumber"
+                        name="rollNumber"
+                        placeholder="Your College Roll Number"
+                        required
+                        value={formData.rollNumber}
+                        onChange={handleChange}
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="eamcetHallTicket">
-                      EAMCET Hall Ticket Number<span className="text-red-500">*</span>
+                    <Label htmlFor="collegeAddress">
+                      College Address<span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                      id="eamcetHallTicket"
-                      name="eamcetHallTicket"
-                      placeholder="EAMCET Hall Ticket Number"
+                    <Textarea
+                      id="collegeAddress"
+                      name="collegeAddress"
+                      placeholder="Your college address"
                       required
-                      value={formData.eamcetHallTicket}
+                      value={formData.collegeAddress}
                       onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="collegeName">
-                      College Name<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="collegeName"
-                      name="collegeName"
-                      placeholder="Engineering College Name"
-                      required
-                      value={formData.collegeName}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rollNumber">
-                      Roll Number<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="rollNumber"
-                      name="rollNumber"
-                      placeholder="Your College Roll Number"
-                      required
-                      value={formData.rollNumber}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="collegeAddress">
-                    College Address<span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    id="collegeAddress"
-                    name="collegeAddress"
-                    placeholder="Your college address"
-                    required
-                    value={formData.collegeAddress}
-                    onChange={handleChange}
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Account Security</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="password">
-                      Password<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      required
-                      value={formData.password}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">
-                      Confirm Password<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      required
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
+                      rows={3}
                     />
                   </div>
                 </div>
-              </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Sign Up"}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary underline underline-offset-4">
-                Log in
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Account Security</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="password">
+                        Password<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        value={formData.password}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">
+                        Confirm Password<span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        required
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Creating account..." : "Sign Up"}
+                </Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Already have an account?{" "}
+                <Link href="/login" className="text-primary underline underline-offset-4">
+                  Log in
+                </Link>
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
 
       {/* Scholarship Benefits Table */}
