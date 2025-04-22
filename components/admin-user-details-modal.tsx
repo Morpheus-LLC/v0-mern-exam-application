@@ -152,7 +152,7 @@ export default function AdminUserDetailsModal({ userId, isOpen, onClose }: UserD
 
       toast({
         title: "Success",
-        description: "User's exam attempts have been reset",
+        description: "User's exam attempts have been reset. They can now take the exam again.",
       })
 
       // Refresh user details

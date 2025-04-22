@@ -3,6 +3,7 @@ import { headers } from "next/headers"
 import connectToDatabase from "@/lib/mongodb"
 import User from "@/models/User"
 import ExamAttempt from "@/models/ExamAttempt"
+import ExamResult from "@/models/ExamResult"
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -40,7 +41,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     // Mark all active attempts as inactive
-    await ExamAttempt.updateMany({ userId, isActive: true }, { isActive: false })
+    await ExamAttempt.updateMany({ userId }, { isActive: false })
+
+    // Delete all attempts for this user (optional, but more thorough)
+    await ExamAttempt.deleteMany({ userId })
+
+    // Delete all exam results for this user
+    await ExamResult.deleteMany({ userId })
 
     return NextResponse.json(
       {

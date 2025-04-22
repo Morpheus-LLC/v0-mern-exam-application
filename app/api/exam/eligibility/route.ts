@@ -75,6 +75,11 @@ export async function GET(request: Request) {
       hasSubmitted: true,
     })
 
+    // If examAttempts is 0 (reset by admin), allow the user to take the exam regardless of previous attempts
+    if (user.examAttempts === 0) {
+      return NextResponse.json({ eligible: true, hasActiveAttempt: false }, { status: 200 })
+    }
+
     if (completedResults.length > 0 || completedAttempts.length > 0) {
       // User has already taken the exam
       return NextResponse.json({ message: "You have already taken this exam" }, { status: 403 })
