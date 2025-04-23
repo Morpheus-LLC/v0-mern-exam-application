@@ -112,66 +112,77 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">Log in</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="john@example.com"
-                required
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Log In"}
-            </Button>
-          </form>
+    <div className="flex flex-col items-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Banner Image */}
+      <div className="w-full">
+        <img
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Add%20a%20heading%20%281%29-nqXBUJyhJO3djEltDOzQw65aVxFwx6.png"
+          alt="Engineering Study Scholarship Test Online"
+          className="w-full h-auto"
+        />
+      </div>
 
-          {/* Test Sign In Button */}
-          <div className="mt-4">
-            <Button
-              variant="outline"
-              className="w-full border-dashed border-gray-300 hover:bg-gray-100"
-              onClick={handleTestSignIn}
-              disabled={loading}
-            >
-              Test Sign In (Demo User)
-            </Button>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Don't have an account?{" "}
-            <Link href="/signup" className="text-primary underline underline-offset-4">
-              Sign up
+      <div className="flex items-center justify-center flex-1 w-full px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl">Log in</CardTitle>
+            <CardDescription>Enter your credentials to access your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="john@example.com"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Logging in..." : "Log In"}
+              </Button>
+            </form>
+
+            {/* Test Sign In Button */}
+            <div className="mt-4">
+              <Button
+                variant="outline"
+                className="w-full border-dashed border-gray-300 hover:bg-gray-100"
+                onClick={handleTestSignIn}
+                disabled={loading}
+              >
+                Test Sign In (Demo User)
+              </Button>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Don't have an account?{" "}
+              <Link href="/signup" className="text-primary underline underline-offset-4">
+                Sign up
+              </Link>
+            </p>
+            <Link href="/forgot-password" className="text-sm text-primary underline underline-offset-4">
+              Forgot your password?
             </Link>
-          </p>
-          <Link href="/forgot-password" className="text-sm text-primary underline underline-offset-4">
-            Forgot your password?
-          </Link>
-        </CardFooter>
-      </Card>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   )
 }

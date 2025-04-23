@@ -192,6 +192,15 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Banner Image */}
+      <div className="w-full">
+        <img
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Add%20a%20heading%20%281%29-nqXBUJyhJO3djEltDOzQw65aVxFwx6.png"
+          alt="Engineering Study Scholarship Test Online"
+          className="w-full h-auto"
+        />
+      </div>
+
       <div className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-2 gap-6 w-full max-w-5xl mx-auto">
           <div className="hidden md:flex flex-col justify-center items-center">

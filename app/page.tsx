@@ -134,6 +134,15 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Banner Image */}
+      <div className="w-full">
+        <img
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Add%20a%20heading%20%281%29-nqXBUJyhJO3djEltDOzQw65aVxFwx6.png"
+          alt="Engineering Study Scholarship Test Online"
+          className="w-full h-auto"
+        />
+      </div>
+
       {/* Header Section */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-6">
