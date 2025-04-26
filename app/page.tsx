@@ -3,6 +3,7 @@
 import type React from "react"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "@/components/ui/use-toast"
@@ -160,10 +161,32 @@ export default function Home() {
             </div>
             <div className="mt-4 md:mt-0 border-l-0 md:border-l pl-0 md:pl-6 pt-4 md:pt-0">
               <p className="text-xl font-medium">Supported by</p>
-              <ul className="list-disc pl-6 mt-2">
-                <li className="font-bold">REWARD</li>
-                <li className="font-bold">LIVE-IN FOUNDATIONs</li>
-              </ul>
+              <div className="flex flex-col space-y-4 mt-2">
+                <div className="flex items-center">
+                  <div className="w-16 h-16 mr-3">
+                    <Image
+                      src="/images/reward-logo.png"
+                      alt="REWARD NGO Logo"
+                      width={100}
+                      height={100}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <span className="font-bold">REWARD</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-16 h-16 mr-3 bg-black flex items-center justify-center">
+                    <Image
+                      src="/images/live-in-foundation-logo.png"
+                      alt="LIVE-IN FOUNDATION Logo"
+                      width={100}
+                      height={50}
+                      className="w-full h-auto object-contain"
+                    />
+                  </div>
+                  <span className="font-bold">LIVE-IN FOUNDATION</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -174,32 +197,32 @@ export default function Home() {
         <div className="container mx-auto">
           <ul className="flex flex-wrap justify-center">
             <li className="border-r">
-              <Link href="/" className="block px-6 py-4 font-medium hover:bg-gray-100">
+              <Link href="/" className="block px-6 py-4 font-bold hover:bg-gray-100">
                 HOME
               </Link>
             </li>
             <li className="border-r">
-              <Link href="/about" className="block px-6 py-4 font-medium hover:bg-gray-100">
+              <Link href="/about" className="block px-6 py-4 font-bold hover:bg-gray-100">
                 ABOUT US
               </Link>
             </li>
             <li className="border-r">
-              <Link href="/scholarship" className="block px-6 py-4 font-medium hover:bg-gray-100">
+              <Link href="/scholarship" className="block px-6 py-4 font-bold hover:bg-gray-100">
                 SCHOLARSHIP
               </Link>
             </li>
             <li className="border-r">
-              <Link href="/eligibility" className="block px-6 py-4 font-medium hover:bg-gray-100">
+              <Link href="/eligibility" className="block px-6 py-4 font-bold hover:bg-gray-100">
                 ELIGIBILITY
               </Link>
             </li>
             <li className="border-r">
-              <Link href="/edl" className="block px-6 py-4 font-medium hover:bg-gray-100">
+              <Link href="/edl" className="block px-6 py-4 font-bold hover:bg-gray-100">
                 EDL
               </Link>
             </li>
             <li>
-              <Link href="/contact" className="block px-6 py-4 font-medium hover:bg-gray-100">
+              <Link href="/contact" className="block px-6 py-4 font-bold hover:bg-gray-100">
                 CONTACT US
               </Link>
             </li>
